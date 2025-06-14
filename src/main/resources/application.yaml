@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: evynt-space
+  datasource:
+    url: jdbc:postgresql://posgres:5432/evyntspace
+    username: postgres
+    password: postgres
+    hikari: # HikariCP Connection Pool (Spring Boot's default)
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000 # Max wait for connection (ms)
+      idle-timeout: 600000 # Max idle time (ms)
+      max-lifetime: 1800000 # Max connection lifetime (ms)
+  jpa: # JPA/Hibernate Properties
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        format_sql: true # Format SQL queries for readability
+    database-platform: org.hibernate.dialect.PostgreSQLDialect # Specifies the dialect for PostgreSQL
+    hibernate:
+      ddl-auto: update # Controls schema generation (options include create, create-drop, update, validate, none)
+    show-sql: true # Show SQL queries in the console
+
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: ff724020539360
+    password: 5067fa7be4b59d
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+email:
+  sender: no-reply@evyntspace.com
+  delivery:
+    method: smtp # or aws-ses
+  outbox:
+    # How often the scheduler runs (still good for fallback processing)
+    processing-interval-ms: 30000
+    # Max number of retry attempts for an email
+    max-retries: 3
+    # Base delay for exponential backoff (1 minute for subsequent retries)
+    retry-delay-seconds: 60
+    # New: Initial delay before the scheduled job picks up a failed immediate email
+    initial-fallback-delay-seconds: 10
+
+cloudinary:
+  cloud-name: drbloq03w
+  api-key: 929777575819514
+  api-secret: cAM8pMZhzy8Ga65tegDl49r5Ntw
+  folder-prefix: es-uploads
