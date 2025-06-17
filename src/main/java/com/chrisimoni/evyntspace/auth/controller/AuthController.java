@@ -1,8 +1,8 @@
 package com.chrisimoni.evyntspace.auth.controller;
 
-import com.chrisimoni.evyntspace.auth.dto.request.VerificationConfirmRequest;
-import com.chrisimoni.evyntspace.auth.dto.request.VerificationRequest;
-import com.chrisimoni.evyntspace.auth.dto.response.VerificationResponse;
+import com.chrisimoni.evyntspace.auth.dto.VerificationConfirmRequest;
+import com.chrisimoni.evyntspace.auth.dto.VerificationRequest;
+import com.chrisimoni.evyntspace.auth.dto.VerificationResponse;
 import com.chrisimoni.evyntspace.auth.model.VerifiedSession;
 import com.chrisimoni.evyntspace.auth.service.VerificationService;
 import com.chrisimoni.evyntspace.common.dto.ApiResponse;

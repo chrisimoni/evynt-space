@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.auth.dto.response;
+package com.chrisimoni.evyntspace.auth.dto;
 
 import java.util.UUID;
 

@@ -2,7 +2,7 @@ spring:
   application:
     name: evynt-space
   datasource:
-    url: jdbc:postgresql://posgres:5432/evyntspace
+    url: jdbc:postgresql://localhost:5432/evyntspace
     username: postgres
     password: postgres
     hikari: # HikariCP Connection Pool (Spring Boot's default)
@@ -35,6 +35,11 @@ spring:
           starttls:
             enable: true
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
 email:
   sender: no-reply@evyntspace.com
   delivery:
@@ -54,3 +59,4 @@ cloudinary:
   api-key: 929777575819514
   api-secret: cAM8pMZhzy8Ga65tegDl49r5Ntw
   folder-prefix: es-uploads
+  default-img-url: https://res.cloudinary.com/drbloq03w/image/upload/v1750084712/es-uploads/mew89uk7esiiklyjzjvl.jpg

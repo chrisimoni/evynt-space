@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.notification.model;
+package com.chrisimoni.evyntspace.notification.enums;
 
 public enum NotificationStatus {
     PENDING,    // Picked up by sender, in process of sending

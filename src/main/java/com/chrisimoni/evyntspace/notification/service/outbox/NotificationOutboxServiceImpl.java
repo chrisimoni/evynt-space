@@ -2,8 +2,8 @@ package com.chrisimoni.evyntspace.notification.service.outbox;
 
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.model.NotificationOutbox;
-import com.chrisimoni.evyntspace.notification.model.NotificationStatus;
-import com.chrisimoni.evyntspace.notification.model.NotificationType;
+import com.chrisimoni.evyntspace.notification.enums.NotificationStatus;
+import com.chrisimoni.evyntspace.notification.enums.NotificationType;
 import com.chrisimoni.evyntspace.notification.repository.NotificationOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

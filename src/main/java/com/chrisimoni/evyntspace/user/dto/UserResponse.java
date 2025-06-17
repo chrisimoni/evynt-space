@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.user.dto.response;
+package com.chrisimoni.evyntspace.user.dto;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,7 +11,7 @@ public record UserResponse(
         String company,
         String phoneNumber,
         boolean active,
-        String profileImgUrl,
+        String profileImageUrl,
         Instant createdAt,
         Instant updatedAt
 ) {

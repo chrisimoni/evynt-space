@@ -13,7 +13,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
 import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validateEmailFormat;
@@ -73,7 +75,8 @@ public class VerificationServiceImpl implements VerificationService{
         //TODO: hash the generated code with passwordEncoder before saving to db
         String plainCode = String.valueOf((int)(Math.random() * 900000) + 100000);
         LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(CODE_VALIDITY_MINUTES);
-        VerificationCode verificationCode = new VerificationCode(email, plainCode, expirationTime);
+        Instant expirationInstant = expirationTime.atZone(ZoneId.of("UTC")).toInstant();
+        VerificationCode verificationCode = new VerificationCode(email, plainCode, expirationInstant);
         verificationCodeRepository.save(verificationCode);
 
         return plainCode;

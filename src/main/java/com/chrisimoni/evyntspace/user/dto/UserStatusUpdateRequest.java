@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.user.dto.request;
+package com.chrisimoni.evyntspace.user.dto;
 
 import jakarta.validation.constraints.NotNull;
 

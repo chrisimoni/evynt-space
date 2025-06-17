@@ -1,6 +1,8 @@
 package com.chrisimoni.evyntspace.notification.model;
 
 import com.chrisimoni.evyntspace.common.model.BaseEntity;
+import com.chrisimoni.evyntspace.notification.enums.NotificationStatus;
+import com.chrisimoni.evyntspace.notification.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

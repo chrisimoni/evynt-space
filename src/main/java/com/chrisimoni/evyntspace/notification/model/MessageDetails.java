@@ -1,5 +1,6 @@
 package com.chrisimoni.evyntspace.notification.model;
 
+import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

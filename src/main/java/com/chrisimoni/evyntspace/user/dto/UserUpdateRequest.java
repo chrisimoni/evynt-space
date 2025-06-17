@@ -1,6 +1,5 @@
-package com.chrisimoni.evyntspace.user.dto.request;
+package com.chrisimoni.evyntspace.user.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record UserUpdateRequest(
@@ -10,6 +9,6 @@ public record UserUpdateRequest(
         String lastName,
         String company,
         String phoneNumber,
-        String profileImgUrl
+        String profileImageUrl
 ) {
 }

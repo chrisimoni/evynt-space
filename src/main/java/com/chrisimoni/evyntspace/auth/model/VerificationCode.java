@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "verification_codes")
@@ -21,11 +21,11 @@ public class VerificationCode extends BaseEntity {
     @Column(nullable = false)
     private String code;
     @Column(nullable = false)
-    private LocalDateTime expirationTime;
+    private Instant expirationTime;
     @Column(nullable = false)
     private boolean isUsed = false;
 
-    public VerificationCode(String email, String code, LocalDateTime expirationTime) {
+    public VerificationCode(String email, String code, Instant expirationTime) {
         this.email = email;
         this.code = code;
         this.expirationTime = expirationTime;

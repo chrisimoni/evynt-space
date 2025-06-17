@@ -1,9 +1,9 @@
 package com.chrisimoni.evyntspace.user.mapper;
 
-import com.chrisimoni.evyntspace.user.dto.request.UserUpdateRequest;
-import com.chrisimoni.evyntspace.user.dto.response.UserResponse;
+import com.chrisimoni.evyntspace.user.dto.UserUpdateRequest;
+import com.chrisimoni.evyntspace.user.dto.UserResponse;
 import com.chrisimoni.evyntspace.user.model.User;
-import com.chrisimoni.evyntspace.user.dto.request.UserCreateRequest;
+import com.chrisimoni.evyntspace.user.dto.UserCreateRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;

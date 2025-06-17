@@ -2,7 +2,7 @@ package com.chrisimoni.evyntspace.notification.listener;
 
 import com.chrisimoni.evyntspace.auth.event.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
-import com.chrisimoni.evyntspace.notification.model.MessageTemplate;
+import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.service.NotificationContentBuilder;
 import com.chrisimoni.evyntspace.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;

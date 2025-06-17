@@ -1,10 +1,10 @@
 package com.chrisimoni.evyntspace.user.controller;
 
 import com.chrisimoni.evyntspace.common.dto.ApiResponse;
-import com.chrisimoni.evyntspace.user.dto.request.UserCreateRequest;
-import com.chrisimoni.evyntspace.user.dto.request.UserStatusUpdateRequest;
-import com.chrisimoni.evyntspace.user.dto.request.UserUpdateRequest;
-import com.chrisimoni.evyntspace.user.dto.response.UserResponse;
+import com.chrisimoni.evyntspace.user.dto.UserCreateRequest;
+import com.chrisimoni.evyntspace.user.dto.UserStatusUpdateRequest;
+import com.chrisimoni.evyntspace.user.dto.UserUpdateRequest;
+import com.chrisimoni.evyntspace.user.dto.UserResponse;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.service.UserService;

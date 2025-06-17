@@ -2,7 +2,7 @@ package com.chrisimoni.evyntspace.notification.service.email;
 
 import com.chrisimoni.evyntspace.common.exception.ExternalServiceException;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
-import com.chrisimoni.evyntspace.notification.model.NotificationType;
+import com.chrisimoni.evyntspace.notification.enums.NotificationType;
 import com.chrisimoni.evyntspace.notification.service.NotificationService;
 import com.chrisimoni.evyntspace.notification.service.email.gateway.EmailServiceGateway;
 import com.chrisimoni.evyntspace.notification.service.outbox.NotificationOutboxService;

@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.notification.model;
+package com.chrisimoni.evyntspace.notification.enums;
 
 public enum MessageTemplate {
     VERIFICATION_NOTIFICATION,

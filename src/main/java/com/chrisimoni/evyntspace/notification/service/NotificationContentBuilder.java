@@ -1,7 +1,7 @@
 package com.chrisimoni.evyntspace.notification.service;
 
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
-import com.chrisimoni.evyntspace.notification.model.MessageTemplate;
+import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
