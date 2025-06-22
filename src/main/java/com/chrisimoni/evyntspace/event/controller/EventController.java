@@ -6,8 +6,6 @@ import com.chrisimoni.evyntspace.event.dto.*;
 import com.chrisimoni.evyntspace.event.mapper.EventMapper;
 import com.chrisimoni.evyntspace.event.model.Event;
 import com.chrisimoni.evyntspace.event.service.EventService;
-import com.chrisimoni.evyntspace.user.dto.UserUpdateRequest;
-import com.chrisimoni.evyntspace.user.model.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
