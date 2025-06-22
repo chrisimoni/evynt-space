@@ -1,6 +1,6 @@
 package com.chrisimoni.evyntspace.notification.listener;
 
-import com.chrisimoni.evyntspace.auth.event.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.user.event.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.service.NotificationContentBuilder;
@@ -21,7 +21,7 @@ import static com.chrisimoni.evyntspace.notification.constant.NotificationTempla
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class AuthEventListener {
+public class UserEventListener {
     private final NotificationService notificationService;
     private final NotificationContentBuilder contentBuilder;
 

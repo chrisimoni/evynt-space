@@ -7,6 +7,7 @@ import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @ValidEventCreateRequest
@@ -44,6 +45,10 @@ public record EventCreateRequest(
         @NotNull(message = "End date cannot be null")
         @Future(message = "End date must be in the future.")
         Instant endDate,
+
+        @Valid
+        List<AgendaDetails> agendas,
+
         @Future(message = "Scheduled publish date must be in the future.")
         Instant scheduledPublishDate
 ) {

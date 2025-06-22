@@ -10,7 +10,8 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(name = "notification_outbox")
@@ -19,27 +20,48 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class NotificationOutbox extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Column(columnDefinition = "jsonb")
     private MessageDetails messageDetails;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private NotificationType notificationType;
-
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private NotificationStatus status;
 
-    @Column(nullable = false)
-    private int retryAttempts = 0;
-
-    private LocalDateTime lastAttemptTime;
+    private int retryAttempts;
+    private Instant lastAttemptTime;
     private String lastError;
-    private LocalDateTime nextAttemptTime;
+    private Instant nextAttemptTime;
 
     public NotificationOutbox(MessageDetails messageDetails, NotificationType notificationType) {
         this.messageDetails = messageDetails;
         this.notificationType = notificationType;
         this.status = NotificationStatus.PENDING;
+        this.retryAttempts = 0;
+    }
+
+    // Method to mark as failed for retry
+    public void markAsFailed(String error, Instant nextAttemptTime) {
+        this.status = NotificationStatus.FAILED;
+        this.lastAttemptTime = Instant.now();
+        this.lastError = error;
+        this.retryAttempts++;
+        this.nextAttemptTime = nextAttemptTime;
+    }
+
+    // Method to mark as sent
+    public void markAsSent() {
+        this.status = NotificationStatus.SENT;
+        this.lastAttemptTime = Instant.now();
+        this.nextAttemptTime = null; // No further attempts needed
+    }
+
+    // Method to mark as permanently failed
+    public void markPermanentFailure(String error) {
+        this.status = NotificationStatus.PERMANENT_FAILURE;
+        this.lastAttemptTime = Instant.now();
+        this.lastError = error;
+        this.retryAttempts++; // Increment one last time
+        this.nextAttemptTime = null; // No further attempts
     }
 }

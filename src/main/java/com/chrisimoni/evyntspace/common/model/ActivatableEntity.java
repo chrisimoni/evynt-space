@@ -4,6 +4,7 @@ import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
@@ -11,5 +12,5 @@ import java.time.LocalDateTime;
 @MappedSuperclass
 public class ActivatableEntity extends BaseEntity {
     private boolean active = true;
-    private LocalDateTime deactivatedAt;
+    private Instant deactivatedAt;
 }

@@ -11,6 +11,7 @@ public record UserResponse(
         String company,
         String phoneNumber,
         boolean active,
+        Instant deactivatedAt,
         String profileImageUrl,
         Instant createdAt,
         Instant updatedAt

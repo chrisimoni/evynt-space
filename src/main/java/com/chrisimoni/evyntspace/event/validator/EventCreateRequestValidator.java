@@ -5,7 +5,6 @@ import com.chrisimoni.evyntspace.event.enums.EventType;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Objects;
@@ -40,6 +39,11 @@ public class EventCreateRequestValidator implements ConstraintValidator<ValidEve
     }
 
     private boolean validateEventDetailsByType(EventCreateRequest request, ConstraintValidatorContext context) {
+        //Check necessary for Update operation, cannot be null for Create
+        if(Objects.isNull(request.eventType())) {
+            return true;
+        }
+
         if (request.eventType() == EventType.PHYSICAL && Objects.isNull(request.physicalEventDetails())) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(

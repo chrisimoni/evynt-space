@@ -1,26 +1,35 @@
 package com.chrisimoni.evyntspace.user.service;
 
-import com.chrisimoni.evyntspace.auth.model.VerifiedSession;
-import com.chrisimoni.evyntspace.auth.repository.VerificationSessionRepository;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
 import com.chrisimoni.evyntspace.common.service.BaseServiceImpl;
+import com.chrisimoni.evyntspace.user.dto.UserSearchCriteria;
 import com.chrisimoni.evyntspace.user.model.User;
+import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.repository.UserRepository;
+import com.chrisimoni.evyntspace.user.repository.UserSpecification;
+import com.chrisimoni.evyntspace.user.repository.VerificationSessionRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.chrisimoni.evyntspace.common.util.ValidationUtil.*;
+import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validateEmailFormat;
+import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validatePassword;
 
 @Service
 public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements UserService {
     private static final String RESOURCE_NAME = "User";
     private final UserRepository repository;
     private final VerificationSessionRepository sessionRepository;
+
+    @Value("${cloudinary.default-user-img}")
+    private String defaultImage;
 
     public UserServiceImpl(UserRepository repository, VerificationSessionRepository sessionRepository) {
         super(repository, RESOURCE_NAME);
@@ -33,6 +42,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
     public User createUser(User model, UUID verficationToken) {
         validate(model);
         verifyEmailSession(model.getEmail(), verficationToken);
+        model.setProfileImageUrl(defaultImage);
         return super.save(model);
     }
 
@@ -45,6 +55,14 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
         }
     }
 
+    @Override
+    public Page<User> findAllUsers(UserSearchCriteria criteria) {
+        UserSpecification spec = new UserSpecification(criteria);
+        Pageable pageable = criteria.toPageable();
+
+        return super.findAll(spec, pageable);
+    }
+
     private Optional<User> getUserByEmail(String email) {
         return repository.findByEmail(email);
     }
@@ -52,7 +70,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
     private void verifyEmailSession(String email, UUID verficationToken) {
         //validate email verification token
         VerifiedSession verifiedSession = sessionRepository
-                .findByIdAndIsUsedFalseAndExpirationTimeAfter(verficationToken, LocalDateTime.now())
+                .findByIdAndIsUsedFalseAndExpirationTimeAfter(verficationToken, Instant.now())
                 .orElseThrow(() -> new BadRequestException(
                         "Email verification token is invalid or expired. Please re-verify your email."));
 

@@ -10,9 +10,12 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -22,9 +25,7 @@ import java.time.Instant;
 @Table(name = "events")
 public class Event extends ActivatableEntity {
     private String title;
-    @Column(nullable = false)
     private String summary;
-    @Column(columnDefinition = "TEXT")
     private String description;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_id", nullable = false)
@@ -44,6 +45,11 @@ public class Event extends ActivatableEntity {
 
     private Instant startDate;
     private Instant endDate;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<Agenda> agendas;
+
     @Enumerated(EnumType.STRING)
     private EventStatus status = EventStatus.PUBLISHED;
     private Instant publishedDate = Instant.now();

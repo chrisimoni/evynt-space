@@ -14,13 +14,13 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
-@ConditionalOnProperty(name = "email.delivery.method", havingValue = "smtp", matchIfMissing = true)
+@ConditionalOnProperty(name = "notification.email-delivery.method", havingValue = "smtp", matchIfMissing = true)
 @RequiredArgsConstructor
 @Slf4j
 public class SmtpEmailServiceGatewayImpl implements EmailServiceGateway {
     private final JavaMailSender mailSender;
 
-    @Value("${email.sender}")
+    @Value("${notification.email.sender}")
     private String sender;
 
     @Override

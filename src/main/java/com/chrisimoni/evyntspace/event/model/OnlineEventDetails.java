@@ -2,6 +2,8 @@ package com.chrisimoni.evyntspace.event.model;
 
 import com.chrisimoni.evyntspace.event.enums.OnlinePlatformType;
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,6 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class OnlineEventDetails {
-    private OnlinePlatformType onlinePlatform; // e.g., "Zoom", "Google Meet"
+    @Enumerated(EnumType.STRING)
+    private OnlinePlatformType onlinePlatform;
     private String meetingLink;
 }

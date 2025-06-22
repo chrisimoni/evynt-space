@@ -1,6 +1,6 @@
-package com.chrisimoni.evyntspace.auth.repository;
+package com.chrisimoni.evyntspace.user.repository;
 
-import com.chrisimoni.evyntspace.auth.model.VerificationCode;
+import com.chrisimoni.evyntspace.user.model.VerificationCode;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

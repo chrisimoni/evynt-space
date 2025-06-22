@@ -1,12 +1,11 @@
-package com.chrisimoni.evyntspace.auth.service;
+package com.chrisimoni.evyntspace.user.service;
 
-import com.chrisimoni.evyntspace.auth.event.VerificationCodeRequestedEvent;
-import com.chrisimoni.evyntspace.auth.model.VerificationCode;
-import com.chrisimoni.evyntspace.auth.model.VerifiedSession;
-import com.chrisimoni.evyntspace.auth.repository.VerificationCodeRepository;
-import com.chrisimoni.evyntspace.auth.repository.VerificationSessionRepository;
+import com.chrisimoni.evyntspace.user.event.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.user.model.VerificationCode;
+import com.chrisimoni.evyntspace.user.model.VerifiedSession;
+import com.chrisimoni.evyntspace.user.repository.VerificationCodeRepository;
+import com.chrisimoni.evyntspace.user.repository.VerificationSessionRepository;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
-import com.chrisimoni.evyntspace.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -15,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validateEmailFormat;
@@ -39,7 +38,7 @@ public class VerificationServiceImpl implements VerificationService{
         userService.validateEmailIsUnique(email);
         verificationCodeRepository.invalidatePreviousCodes(email);
 
-        String code = generateVerificationCode(email);
+        String code = generateAndSaveCode(email);
 
         eventPublisher.publishEvent(new VerificationCodeRequestedEvent(
                 this, email, code, CODE_VALIDITY_MINUTES));
@@ -64,19 +63,20 @@ public class VerificationServiceImpl implements VerificationService{
         return createSession(email);
     }
 
-    private VerifiedSession createSession(String email) {
-        LocalDateTime sessionExpirationTime = LocalDateTime.now().plusMinutes(SESSION_VALIDITY_MINUTES);
-        VerifiedSession session = new VerifiedSession(email, SESSION_VALIDITY_MINUTES, sessionExpirationTime);
+    @Transactional
+    protected VerifiedSession createSession(String email) {
+        sessionRepository.invalidatePreviousSessions(email);
+        Instant sessionExpirationTime = Instant.now().plus(SESSION_VALIDITY_MINUTES, ChronoUnit.MINUTES);
+        VerifiedSession session = new VerifiedSession(email, sessionExpirationTime);
         return sessionRepository.save(session);
     }
 
-    private String generateVerificationCode(String email) {
+    private String generateAndSaveCode(String email) {
         //generate 6-digit code
         //TODO: hash the generated code with passwordEncoder before saving to db
         String plainCode = String.valueOf((int)(Math.random() * 900000) + 100000);
-        LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(CODE_VALIDITY_MINUTES);
-        Instant expirationInstant = expirationTime.atZone(ZoneId.of("UTC")).toInstant();
-        VerificationCode verificationCode = new VerificationCode(email, plainCode, expirationInstant);
+        Instant expirationTime = Instant.now().plus(CODE_VALIDITY_MINUTES, ChronoUnit.MINUTES);
+        VerificationCode verificationCode = new VerificationCode(email, plainCode, expirationTime);
         verificationCodeRepository.save(verificationCode);
 
         return plainCode;

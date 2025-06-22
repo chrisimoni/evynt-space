@@ -2,9 +2,9 @@ spring:
   application:
     name: evynt-space
   datasource:
-    url: jdbc:postgresql://localhost:5432/evyntspace
-    username: postgres
-    password: postgres
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
     hikari: # HikariCP Connection Pool (Spring Boot's default)
       maximum-pool-size: 10
       minimum-idle: 2
@@ -14,20 +14,31 @@ spring:
   jpa: # JPA/Hibernate Properties
     properties:
       hibernate:
-        jdbc:
-          lob:
-            non_contextual_creation: true
+#        jdbc:
+#          lob:
+#            non_contextual_creation: true
         format_sql: true # Format SQL queries for readability
-    database-platform: org.hibernate.dialect.PostgreSQLDialect # Specifies the dialect for PostgreSQL
-    hibernate:
-      ddl-auto: update # Controls schema generation (options include create, create-drop, update, validate, none)
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true # Show SQL queries in the console
 
+  # --- Flyway Configuration ---
+  flyway:
+    enabled: true
+    # url: jdbc:postgresql://localhost:5432/evyntspace
+    # user: postgres
+    # password: postgres
+    # Default location, uncomment and change if your scripts are elsewhere
+    # locations: classpath:/db/migration
+    # Change the name of the Flyway schema history table (default: flyway_schema_history)
+    # table: schema_history
+    # Recommended for existing databases without Flyway history
+    baseline-on-migrate: true
+
   mail:
-    host: sandbox.smtp.mailtrap.io
-    port: 2525
-    username: ff724020539360
-    password: 5067fa7be4b59d
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -40,23 +51,23 @@ spring:
       max-file-size: 5MB
       max-request-size: 5MB
 
-email:
-  sender: no-reply@evyntspace.com
-  delivery:
-    method: smtp # or aws-ses
+notification:
+  email:
+    sender: ${EMAIL_SENDER}
+    delivery-method: ${EMAIL_DELIVERY_METHOD}
+  #Other types of notification can go here
+
   outbox:
-    # How often the scheduler runs (still good for fallback processing)
-    processing-interval-ms: 30000
-    # Max number of retry attempts for an email
-    max-retries: 3
-    # Base delay for exponential backoff (1 minute for subsequent retries)
-    retry-delay-seconds: 60
-    # New: Initial delay before the scheduled job picks up a failed immediate email
-    initial-fallback-delay-seconds: 10
+    processing-batch-size: 100       # How many messages to fetch at once for processing
+    processing-cron-expression: "0 * * * * *" # Every minute (for example)
+    max-retry-attempts: 5            # Max retries before permanent failure
+    initial-retry-interval-minutes: 1 # Initial delay for first retry
+    retry-interval-factor: 2         # Factor to increase delay (e.g., exponential backoff: 1min, 2min, 4min, 8min)
 
 cloudinary:
-  cloud-name: drbloq03w
-  api-key: 929777575819514
-  api-secret: cAM8pMZhzy8Ga65tegDl49r5Ntw
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
   folder-prefix: es-uploads
-  default-img-url: https://res.cloudinary.com/drbloq03w/image/upload/v1750084712/es-uploads/mew89uk7esiiklyjzjvl.jpg
+  default-event-img: https://res.cloudinary.com/drbloq03w/image/upload/v1750084712/es-uploads/mew89uk7esiiklyjzjvl.jpg
+  default-user-img: https://res.cloudinary.com/drbloq03w/image/upload/v1750592867/es-uploads/lczaaf0wrm27dbgun05m.jpg

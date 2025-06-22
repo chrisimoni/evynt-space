@@ -1,6 +1,6 @@
-package com.chrisimoni.evyntspace.auth.service;
+package com.chrisimoni.evyntspace.user.service;
 
-import com.chrisimoni.evyntspace.auth.model.VerifiedSession;
+import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 
 public interface VerificationService {
     void requestVerificationCode(String email);

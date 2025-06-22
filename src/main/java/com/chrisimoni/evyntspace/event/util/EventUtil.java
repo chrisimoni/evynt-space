@@ -1,6 +1,7 @@
 package com.chrisimoni.evyntspace.event.util;
 
 import java.text.Normalizer;
+import java.util.List;
 import java.util.Locale;
 
 public class EventUtil {
@@ -18,5 +19,9 @@ public class EventUtil {
         slug = slug.replaceAll("^-|-$", "");
 
         return slug;
+    }
+
+    public static boolean isNullOrEmpty(List<?> list) {
+        return list == null || list.isEmpty();
     }
 }

@@ -28,6 +28,4 @@ public class User extends ActivatableEntity {
     private String company;
     private String phoneNumber;
     private String profileImageUrl;
-    @OneToMany(mappedBy = "organizer", fetch = FetchType.LAZY) // No cascade REMOVE/ALL here
-    private Set<Event> organizedEvents = new HashSet<>();
 }

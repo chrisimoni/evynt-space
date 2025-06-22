@@ -1,19 +1,19 @@
 package com.chrisimoni.evyntspace.user.controller;
 
 import com.chrisimoni.evyntspace.common.dto.ApiResponse;
-import com.chrisimoni.evyntspace.user.dto.UserCreateRequest;
+import com.chrisimoni.evyntspace.common.dto.PageResponse;
+import com.chrisimoni.evyntspace.user.dto.UserResponse;
+import com.chrisimoni.evyntspace.user.dto.UserSearchCriteria;
 import com.chrisimoni.evyntspace.user.dto.UserStatusUpdateRequest;
 import com.chrisimoni.evyntspace.user.dto.UserUpdateRequest;
-import com.chrisimoni.evyntspace.user.dto.UserResponse;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -23,20 +23,10 @@ public class UserController {
     private final UserService service;
     private final UserMapper mapper;
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<UserResponse> createUser(@Valid @RequestBody UserCreateRequest request) {
-        User user = service.createUser(mapper.toModel(request), request.verificationToken());
-        return ApiResponse.success("User created.", mapper.toResponseDto(user));
-    }
-
     @GetMapping
-    public ApiResponse<List<UserResponse>> getUsers() {
-        List<UserResponse> users = service.findAll()
-                .stream()
-                .map(mapper::toResponseDto)
-                .toList();
-        return ApiResponse.success("User list retrieved.", users);
+    public ApiResponse<PageResponse<UserResponse>> getUsers(@Valid UserSearchCriteria filter) {
+        Page<User> users = service.findAllUsers(filter);
+        return ApiResponse.success("User list retrieved.", mapper.toPageResponse(users));
     }
 
     @GetMapping("/{id}")
@@ -46,7 +36,9 @@ public class UserController {
     }
 
     @PatchMapping("/{id}")
-    public ApiResponse<UserResponse> updateUser(@PathVariable("id") UUID id, @Valid @RequestBody UserUpdateRequest request) {
+    public ApiResponse<UserResponse> updateUser(
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody UserUpdateRequest request) {
         User userToUpdate = mapper.updateUserFromDto(request, service.findById(id));
         User updatedUser = service.save(userToUpdate);
         return ApiResponse.success("User updated.", mapper.toResponseDto(updatedUser));

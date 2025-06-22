@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.auth.model;
+package com.chrisimoni.evyntspace.user.model;
 
 import com.chrisimoni.evyntspace.common.model.BaseEntity;
 import jakarta.persistence.Column;
@@ -16,14 +16,10 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 public class VerificationCode extends BaseEntity {
-    @Column(nullable = false)
     private String email;
-    @Column(nullable = false)
     private String code;
-    @Column(nullable = false)
     private Instant expirationTime;
-    @Column(nullable = false)
-    private boolean isUsed = false;
+    private boolean isUsed;
 
     public VerificationCode(String email, String code, Instant expirationTime) {
         this.email = email;
