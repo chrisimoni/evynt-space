@@ -11,6 +11,7 @@ import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +25,7 @@ public class UserController {
     private final UserMapper mapper;
 
     @GetMapping
-    public ApiResponse<PageResponse<UserResponse>> getUsers(@Valid UserSearchCriteria filter) {
+    public ApiResponse<PageResponse<UserResponse>> getUsers(@Valid @ParameterObject UserSearchCriteria filter) {
         Page<User> users = service.findAllUsers(filter);
         return ApiResponse.success("User list retrieved.", mapper.toPageResponse(users));
     }

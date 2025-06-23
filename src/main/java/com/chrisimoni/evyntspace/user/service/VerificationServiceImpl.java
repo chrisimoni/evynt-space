@@ -49,7 +49,7 @@ public class VerificationServiceImpl implements VerificationService{
     public VerifiedSession confirmVerificationCode(String email, String code) {
         validateEmailFormat(email);
         VerificationCode latestCode = verificationCodeRepository
-                .findActiveVerificatonCodeByEmail(email, LocalDateTime.now())
+                .findActiveVerificatonCodeByEmail(email, Instant.now())
                 .orElseThrow(() -> new BadRequestException("Verification failed: No active code found or code expired/used."));
 
         //TODO: verify the hashed codes
@@ -71,7 +71,7 @@ public class VerificationServiceImpl implements VerificationService{
         return sessionRepository.save(session);
     }
 
-    private String generateAndSaveCode(String email) {
+    String generateAndSaveCode(String email) {
         //generate 6-digit code
         //TODO: hash the generated code with passwordEncoder before saving to db
         String plainCode = String.valueOf((int)(Math.random() * 900000) + 100000);

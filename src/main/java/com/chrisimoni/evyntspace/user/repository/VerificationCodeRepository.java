@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,5 +30,5 @@ public interface VerificationCodeRepository extends JpaRepository<VerificationCo
             """, nativeQuery = true)
     Optional<VerificationCode> findActiveVerificatonCodeByEmail(
             @Param("email") String email,
-            @Param("now") LocalDateTime now);
+            @Param("now") Instant now);
 }

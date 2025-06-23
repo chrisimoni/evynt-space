@@ -8,6 +8,7 @@ import com.chrisimoni.evyntspace.event.model.Event;
 import com.chrisimoni.evyntspace.event.service.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ public class EventController {
     }
 
     @GetMapping
-    public ApiResponse<PageResponse<EventResponse>> getEvents(@Valid EventSearchCriteria filter) {
+    public ApiResponse<PageResponse<EventResponse>> getEvents(@Valid @ParameterObject EventSearchCriteria filter) {
         //Modified to include authenticated user
         Page<Event> events = service.findAllEvents(filter, false);
         return ApiResponse.success("Event list retrieved.", mapper.toPageResponse(events));
