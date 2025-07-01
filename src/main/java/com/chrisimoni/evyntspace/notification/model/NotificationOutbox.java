@@ -38,14 +38,13 @@ public class NotificationOutbox extends BaseEntity {
         this.notificationType = notificationType;
         this.status = NotificationStatus.PENDING;
         this.retryAttempts = 0;
+        this.nextAttemptTime = Instant.now();
     }
 
     // Method to mark as failed for retry
     public void markAsFailed(String error, Instant nextAttemptTime) {
         this.status = NotificationStatus.FAILED;
-        this.lastAttemptTime = Instant.now();
-        this.lastError = error;
-        this.retryAttempts++;
+        this.lastError = setErrorMessage(error);
         this.nextAttemptTime = nextAttemptTime;
     }
 
@@ -59,9 +58,15 @@ public class NotificationOutbox extends BaseEntity {
     // Method to mark as permanently failed
     public void markPermanentFailure(String error) {
         this.status = NotificationStatus.PERMANENT_FAILURE;
-        this.lastAttemptTime = Instant.now();
-        this.lastError = error;
-        this.retryAttempts++; // Increment one last time
+        this.lastError = setErrorMessage(error);
         this.nextAttemptTime = null; // No further attempts
+    }
+
+    private String setErrorMessage(String error) {
+        return Objects.nonNull(error)
+                ? error.substring(0, Math.min(error.length(), 255))
+                : String.format(
+                "Unknown error while sending %s notification",
+                this.notificationType.name().toLowerCase());
     }
 }

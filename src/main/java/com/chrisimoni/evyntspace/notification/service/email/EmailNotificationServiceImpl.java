@@ -24,7 +24,7 @@ public class EmailNotificationServiceImpl implements NotificationService {
         try {
             emailSenderGateway.sendEmail(messageDetails);
         }catch (ExternalServiceException e) {
-            outboxService.saveToOutbox(messageDetails, NotificationType.EMAIL, e.getMessage());
+            outboxService.saveFailedMessageToOutbox(messageDetails, NotificationType.EMAIL, e.getMessage());
         }
     }
 }

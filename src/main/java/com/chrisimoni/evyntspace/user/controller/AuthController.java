@@ -36,7 +36,7 @@ public class AuthController {
         VerifiedSession session = verificationService.confirmVerificationCode(
                 request.email(), request.code());
         VerificationResponse response = new VerificationResponse(session.getId(), session.getExpirationTime());
-        return ApiResponse.success("Email successful verified.", response);
+        return ApiResponse.success("Email successfully verified.", response);
     }
 
     @PostMapping("/signup")

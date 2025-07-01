@@ -5,29 +5,25 @@ import com.chrisimoni.evyntspace.notification.enums.NotificationType;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.model.NotificationOutbox;
 import com.chrisimoni.evyntspace.notification.repository.NotificationOutboxRepository;
-import com.chrisimoni.evyntspace.notification.service.NotificationService;
+import com.chrisimoni.evyntspace.notification.service.email.gateway.EmailServiceGateway;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationOutboxServiceImpl implements NotificationOutboxService{
     private final NotificationOutboxRepository outboxRepository;
-    //private final NotificationService notificationService;
-
-    @Value("${notification.outbox.processing-batch-size}")
-    private int processingBatchSize;
+    private final EmailServiceGateway emailServiceGateway;
 
     @Value("${notification.outbox.max-retry-attempts}")
     private int maxRetryAttempts;
@@ -38,83 +34,69 @@ public class NotificationOutboxServiceImpl implements NotificationOutboxService{
     @Value("${notification.outbox.retry-interval-factor}")
     private int retryIntervalFactor;
 
-
     @Override
-    @Transactional
-    public void saveToOutbox(MessageDetails messageDetails, NotificationType type, String error) {
+    @Transactional(propagation = Propagation.REQUIRED) // Ensure this save is part of the original transaction
+    public void saveFailedMessageToOutbox(MessageDetails messageDetails, NotificationType type, String error) {
         NotificationOutbox notificationOutbox = new NotificationOutbox(messageDetails, type);
-        error = setErrorMessage(error, type);
-        long delayMinutes = (long) (initialRetryIntervalMinutes * Math.pow(
-                retryIntervalFactor, notificationOutbox.getRetryAttempts()));
-        Instant nextAttempt = Instant.now().plus(delayMinutes, ChronoUnit.MINUTES);
-        notificationOutbox.markAsFailed(error, nextAttempt);
+        Instant nextAttemptTime = getNextAttemptTime(notificationOutbox.getRetryAttempts());
+        notificationOutbox.markAsFailed(error, nextAttemptTime);
 
         outboxRepository.save(notificationOutbox);
     }
 
-    // This method will be scheduled to run periodically
-    //@Scheduled(cron = "${notification.outbox.processing-cron-expression}")
-//    @Scheduled(cron = "*/5 * * * * *")
-//    @Transactional // Each run of the scheduler method is a single transaction
-//    public void processOutboxMessages() {
-//        log.info("Scheduler running every sec");
-//        Instant now = Instant.now();
-//
-//        // Fetch messages ready for processing
-//        // Using the custom query for robust pending/failed selection
-//        List<NotificationOutbox> messagesToProcess = outboxRepository.findFailedMessagesToProcess(
-//                NotificationStatus.FAILED,
-//                PageRequest.of(0, processingBatchSize)
-//        );
-//
-//        if (messagesToProcess.isEmpty()) {
-//            return;
-//        }
-//
-//        for (NotificationOutbox message : messagesToProcess) {
-//            MessageDetails details = message.getMessageDetails();
-//            try {
-//                // --- Perform the actual notification sending based on type
-//                // we only have Email Impl for now
-//                switch (message.getNotificationType()) {
-//                    case EMAIL:
-//                        notificationService.send(details);
-//                        break;
-//                    case SMS:
-//                        // For this example, let's just log SMS for now
-//                        System.out.println("Simulating SMS to " + details.getRecipient() + ": " + details.getBody());
-//                        break;
-//                    default:
-//                        throw new IllegalArgumentException("Unknown notification type: "
-//                                + message.getNotificationType());
-//                }
-//                // --- Mark as SENT on success ---
-//                message.markAsSent();
-//
-//            } catch (Exception e) {
-//                // --- Handle failure ---
-//                String errorMessage = setErrorMessage(e.getMessage(), message.getNotificationType());
-//
-//                if (message.getRetryAttempts() >= maxRetryAttempts) {
-//                    message.markPermanentFailure(errorMessage);
-//                } else {
-//                    // Calculate next attempt time with exponential backoff
-//                    long delayMinutes = (long) (initialRetryIntervalMinutes * Math.pow(retryIntervalFactor, message.getRetryAttempts()));
-//                    Instant nextAttempt = Instant.now().plus(delayMinutes, ChronoUnit.MINUTES);
-//                    message.markAsFailed(errorMessage, nextAttempt);
-//                }
-//            }
-//
-//        }
-//        // Save all changes in a single transaction (due to @Transactional on method)
-//        outboxRepository.saveAll(messagesToProcess);
-//    }
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificationOutbox> findFailedMessagesToProcess(NotificationStatus notificationStatus, Pageable pageable) {
+        return outboxRepository.findFailedMessagesToProcess(notificationStatus, pageable);
+    }
 
-    private String setErrorMessage(String error, NotificationType notificationType) {
-        return Objects.nonNull(error)
-                ? error.substring(0, Math.min(error.length(), 255))
-                : String.format(
-                "Unknown error while sending %s notification",
-                notificationType.name().toLowerCase());
+    /**
+     * Processes a single outbox outboxMessage, attempting to send it and updating its status.
+     * This method is intended to be called by the scheduler.
+     * It runs in its own transaction to ensure each outboxMessage's state is updated atomically.
+     */
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW) // Critical: new transaction for each outboxMessage
+    public void processSingleOutboxMessage(NotificationOutbox outboxMessage) {
+        log.info("Processing outbox outboxMessage ID: {} (Type: {}, Recipient: {})",
+                outboxMessage.getId(), outboxMessage.getNotificationType(), outboxMessage.getMessageDetails().getRecipient());
+
+        MessageDetails details = outboxMessage.getMessageDetails();
+        outboxMessage.setLastAttemptTime(Instant.now());
+        outboxMessage.setRetryAttempts(outboxMessage.getRetryAttempts() + 1); // Increment attempt count
+
+        try {
+            emailServiceGateway.sendEmail(details);
+            // --- Mark as SENT on success ---
+            outboxMessage.markAsSent();
+            log.info("Outbox outboxMessage ID: {} successfully sent after {} retries.",
+                    outboxMessage.getId(), outboxMessage.getRetryAttempts());
+        } catch (Exception e) {
+            // --- Handle failure ---
+            handleMessageFailure(outboxMessage, e.getMessage());
+        } finally {
+            outboxRepository.save(outboxMessage); // Save the updated outboxMessage (success, failed, or permanently failed)
+        }
+    }
+
+    private void handleMessageFailure(NotificationOutbox outboxMessage, String error) {
+        if (outboxMessage.getRetryAttempts() >= maxRetryAttempts) {
+            outboxMessage.markPermanentFailure(error);
+            log.error("Outbox outboxMessage ID: {} permanently failed after {} retries. Marked as PERMANENTLY_FAILED.",
+                    outboxMessage.getId(), outboxMessage.getRetryAttempts());
+            return;
+        }
+
+        // Calculate next retry time using exponential backoff
+        Instant nextAttempt = getNextAttemptTime(outboxMessage.getRetryAttempts());
+        outboxMessage.markAsFailed(error, nextAttempt);
+        log.warn("Outbox outboxMessage ID: {} will be re-attempted at {}. Marked as FAILED.",
+                outboxMessage.getId(), nextAttempt);
+    }
+
+    public Instant getNextAttemptTime(int retryAttempts) {
+        long delayMinutes = (long) (initialRetryIntervalMinutes * Math.pow(
+                retryIntervalFactor, retryAttempts));
+        return Instant.now().plus(delayMinutes, ChronoUnit.MINUTES);
     }
 }

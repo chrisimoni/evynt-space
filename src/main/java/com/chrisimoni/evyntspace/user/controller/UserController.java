@@ -45,6 +45,7 @@ public class UserController {
         return ApiResponse.success("User updated.", mapper.toResponseDto(updatedUser));
     }
 
+    //TODO: this method might not be required
     @GetMapping("/profile")
     public ApiResponse<UserResponse> getUserProfile() {
         //TODO: userId to be retrieved by auth token later
