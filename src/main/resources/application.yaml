@@ -60,7 +60,7 @@ notification:
   outbox:
     processing-batch-size: 100       # How many messages to fetch at once for processing
     processing-cron-expression: "0 * * * * *" # Every minute (for example)
-    max-retry-attempts: 5            # Max retries before permanent failure
+    max-retry-attempts: 3            # Max retries before permanent failure
     initial-retry-interval-minutes: 1 # Initial delay for first retry
     retry-interval-factor: 2         # Factor to increase delay (e.g., exponential backoff: 1min, 2min, 4min, 8min)
 
