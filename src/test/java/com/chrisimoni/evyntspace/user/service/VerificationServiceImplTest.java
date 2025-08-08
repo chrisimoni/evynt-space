@@ -17,9 +17,11 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,32 +44,34 @@ public class VerificationServiceImplTest {
     @InjectMocks
     private VerificationServiceImpl verificationService;
 
+    private final UUID TEST_TOKEN = UUID.randomUUID();
+    private final String TEST_EMAIL = "test@example.com";
+
     @Test
     @DisplayName("Should successfully request verification code and publish event")
     void testRequestVerificationCode_shouldPass() {
         // Arrange
-        String email = "test@example.com";
         String generatedCode = "123456";
         int validityMinutes = 5;
 
         // Mock behavior of dependencies
         // void methods: doNothing() is default for void, but explicit for clarity
-        doNothing().when(userService).validateEmailIsUnique(email);
-        doNothing().when(verificationCodeRepository).invalidatePreviousCodes(email);
+        doNothing().when(userService).validateEmailIsUnique(TEST_EMAIL);
+        doNothing().when(verificationCodeRepository).invalidatePreviousCodes(TEST_EMAIL);
 
         // Mock the private generateAndSaveCode method
         // We use Mockito.spy to partially mock the actual service instance
         // Then we define behavior for its private method.
         VerificationServiceImpl spyVerificationService = Mockito.spy(verificationService);
-        doReturn(generatedCode).when(spyVerificationService).generateAndSaveCode(email);
+        doReturn(generatedCode).when(spyVerificationService).generateAndSaveCode(TEST_EMAIL);
 
         // Call the method under test
-        spyVerificationService.requestVerificationCode(email);
+        spyVerificationService.requestVerificationCode(TEST_EMAIL);
 
         // Verify interactions
-        verify(userService, times(1)).validateEmailIsUnique(email);
-        verify(verificationCodeRepository, times(1)).invalidatePreviousCodes(email);
-        verify(spyVerificationService, times(1)).generateAndSaveCode(email);
+        verify(userService, times(1)).validateEmailIsUnique(TEST_EMAIL);
+        verify(verificationCodeRepository, times(1)).invalidatePreviousCodes(TEST_EMAIL);
+        verify(spyVerificationService, times(1)).generateAndSaveCode(TEST_EMAIL);
 
         // Verify the event was published with correct details
         ArgumentCaptor<VerificationCodeRequestedEvent> eventCaptor = ArgumentCaptor.forClass(
@@ -75,7 +79,7 @@ public class VerificationServiceImplTest {
         verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
 
         VerificationCodeRequestedEvent capturedEvent = eventCaptor.getValue();
-        assertThat(capturedEvent.getRecipient()).isEqualTo(email);
+        assertThat(capturedEvent.getRecipient()).isEqualTo(TEST_EMAIL);
         assertThat(capturedEvent.getVerificationCode()).isEqualTo(generatedCode);
         assertThat(capturedEvent.getCodeValidityInMinutes()).isEqualTo(validityMinutes);
     }
@@ -117,78 +121,119 @@ public class VerificationServiceImplTest {
     @Test
     @DisplayName("Should confirm verification code and create a session")
     void testConfirmVerificationCode_shouldPass() {
-        // Arrange
-        String email = "test@example.com";
         String inputCode = "123456";
         int sessionValidityInMinutes = 15;
 
-        Instant now = Instant.now();
         VerificationCode verificationCode = new VerificationCode();
         verificationCode.setCode(inputCode);
         verificationCode.setUsed(false);
 
-//        when(verificationCodeRepository.findActiveVerificatonCodeByEmail(email, now))
-//                .thenReturn(Optional.of(verificationCode));
-        when(verificationCodeRepository.findActiveVerificatonCodeByEmail(eq(email), any(Instant.class)))
+        when(verificationCodeRepository.findActiveVerificatonCodeByEmail(eq(TEST_EMAIL), any(Instant.class)))
                 .thenReturn(Optional.of(verificationCode));
 
         VerifiedSession expectedSession = new VerifiedSession(
-                email,
+                TEST_EMAIL,
                 Instant.now().plus(sessionValidityInMinutes, ChronoUnit.MINUTES));
         when(sessionRepository.save(any(VerifiedSession.class))).thenReturn(expectedSession);
 
         // Act
-        VerifiedSession session = verificationService.confirmVerificationCode(email, inputCode);
+        VerifiedSession session = verificationService.confirmVerificationCode(TEST_EMAIL, inputCode);
 
         // Assert
         assertNotNull(session, "Session should not be null");
-        assertEquals(email, session.getEmail(), "Session email should match");
+        assertEquals(TEST_EMAIL, session.getEmail(), "Session email should match");
         assertNotNull(session.getExpirationTime(), "Session expiration time should not be null");
 
         verify(verificationCodeRepository, times(1))
-                .findActiveVerificatonCodeByEmail(eq(email), any(Instant.class));
+                .findActiveVerificatonCodeByEmail(eq(TEST_EMAIL), any(Instant.class));
 
         verify(verificationCodeRepository, times(1)).save(verificationCode);
-        verify(sessionRepository, times(1)).invalidatePreviousSessions(email);
+        verify(sessionRepository, times(1)).invalidatePreviousSessions(TEST_EMAIL);
         verify(sessionRepository, times(1)).save(any(VerifiedSession.class));
     }
 
     @Test
-    @DisplayName("confirmVerificationCode: Should throw BadRequestException if no active code found")
+    @DisplayName("Should throw BadRequestException if no active code found")
     void testConfirmVerificationCode_NoActiveCodeFound_ThrowsException() {
-        String email = "test@example.com";
         String someCode = "123456";
 
         // Mock repository to return empty Optional
-        when(verificationCodeRepository.findActiveVerificatonCodeByEmail(eq(email), any(Instant.class)))
+        when(verificationCodeRepository.findActiveVerificatonCodeByEmail(eq(TEST_EMAIL), any(Instant.class)))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
         BadRequestException thrown = assertThrows(BadRequestException.class, () -> {
-            verificationService.confirmVerificationCode(email, someCode);
+            verificationService.confirmVerificationCode(TEST_EMAIL, someCode);
         });
 
         assertEquals("Verification failed: No active code found or code expired/used.", thrown.getMessage());
     }
 
     @Test
-    @DisplayName("confirmVerificationCode: Should throw BadRequestException if code mismatch")
+    @DisplayName("Should throw BadRequestException if code mismatch")
     void testConfirmVerificationCode_CodeMismatch_ThrowsException() {
-        String email = "test@example.com";
         String inputCode = "WRONGCODE";
         String correctCode = "123456";
 
         VerificationCode activeCode = new VerificationCode(
-                email, correctCode, Instant.now().plus(10, ChronoUnit.MINUTES));
+                TEST_EMAIL, correctCode, Instant.now().plus(10, ChronoUnit.MINUTES));
 
-        when(verificationCodeRepository.findActiveVerificatonCodeByEmail(eq(email), any(Instant.class)))
+        when(verificationCodeRepository.findActiveVerificatonCodeByEmail(eq(TEST_EMAIL), any(Instant.class)))
                 .thenReturn(Optional.of(activeCode));
 
         BadRequestException thrown = assertThrows(BadRequestException.class, () -> {
-            verificationService.confirmVerificationCode(email, inputCode);
+            verificationService.confirmVerificationCode(TEST_EMAIL, inputCode);
         });
 
         assertEquals("Verification failed: Invalid code.", thrown.getMessage());
     }
 
+    @Test
+    @DisplayName("Should verify email session")
+    void testVerifyEmailSession_shouldPass() {
+        VerifiedSession session = mockSession();
+
+        when(sessionRepository.findByIdAndIsUsedFalseAndExpirationTimeAfter(eq(TEST_TOKEN), any()))
+                .thenReturn(Optional.of(session));
+
+        verificationService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN);
+
+        assertTrue(session.isUsed());
+        verify(sessionRepository).save(session);
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when token is invalid/expired")
+    void testVerifyEmailSession_WhenTokenIsInvalidOrExpired_ThrowsException() {
+
+        when(sessionRepository.findByIdAndIsUsedFalseAndExpirationTimeAfter(eq(TEST_TOKEN), any()))
+                .thenReturn(Optional.empty());
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () ->
+                verificationService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN));
+
+        assertEquals("Email verification token is invalid or expired. Please re-verify your email.", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when email does not match email in session")
+    void  testVerifyEmailSession_WhenEmailDoesNotMatch_ThrowsException() {
+        VerifiedSession session = mockSession();
+        session.setEmail("other@example.com");
+
+        when(sessionRepository.findByIdAndIsUsedFalseAndExpirationTimeAfter(eq(TEST_TOKEN), any()))
+                .thenReturn(Optional.of(session));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () ->
+                verificationService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN));
+
+        assertEquals("Email in request does not match verified email in token.", ex.getMessage());
+    }
+
+    private VerifiedSession mockSession() {
+        Instant expirationTime = Instant.now().plus(Duration.ofMinutes(15));
+        VerifiedSession session = new VerifiedSession(TEST_EMAIL, expirationTime);
+        session.setId(TEST_TOKEN);
+        return session;
+    }
 }

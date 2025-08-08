@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
+import java.util.UUID;
 
 import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validateEmailFormat;
 
@@ -69,6 +70,24 @@ public class VerificationServiceImpl implements VerificationService{
         Instant sessionExpirationTime = Instant.now().plus(SESSION_VALIDITY_MINUTES, ChronoUnit.MINUTES);
         VerifiedSession session = new VerifiedSession(email, sessionExpirationTime);
         return sessionRepository.save(session);
+    }
+
+    @Override
+    @Transactional
+    public void verifyEmailSession(String email, UUID verficationToken) {
+        //validate email verification token
+        VerifiedSession verifiedSession = sessionRepository
+                .findByIdAndIsUsedFalseAndExpirationTimeAfter(verficationToken, Instant.now())
+                .orElseThrow(() -> new BadRequestException(
+                        "Email verification token is invalid or expired. Please re-verify your email."));
+
+        if(!verifiedSession.getEmail().equalsIgnoreCase(email)) {
+            throw new BadRequestException("Email in request does not match verified email in token.");
+        }
+
+        //mark the verification session as used to prevent reuse
+        verifiedSession.setUsed(true);
+        sessionRepository.save(verifiedSession);
     }
 
     String generateAndSaveCode(String email) {
