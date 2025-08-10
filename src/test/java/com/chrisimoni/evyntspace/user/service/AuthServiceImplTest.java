@@ -3,6 +3,7 @@ package com.chrisimoni.evyntspace.user.service;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
 import com.chrisimoni.evyntspace.user.event.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerificationCode;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.repository.VerificationCodeRepository;
@@ -28,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class VerificationServiceImplTest {
+public class AuthServiceImplTest {
     @Mock
     private UserService userService;
 
@@ -42,7 +43,7 @@ public class VerificationServiceImplTest {
     private VerificationSessionRepository sessionRepository;
 
     @InjectMocks
-    private VerificationServiceImpl verificationService;
+    private AuthServiceImpl authService;
 
     private final UUID TEST_TOKEN = UUID.randomUUID();
     private final String TEST_EMAIL = "test@example.com";
@@ -62,7 +63,7 @@ public class VerificationServiceImplTest {
         // Mock the private generateAndSaveCode method
         // We use Mockito.spy to partially mock the actual service instance
         // Then we define behavior for its private method.
-        VerificationServiceImpl spyVerificationService = Mockito.spy(verificationService);
+        AuthServiceImpl spyVerificationService = Mockito.spy(authService);
         doReturn(generatedCode).when(spyVerificationService).generateAndSaveCode(TEST_EMAIL);
 
         // Call the method under test
@@ -90,7 +91,7 @@ public class VerificationServiceImplTest {
         String invalidEmail = "invalid-email";
 
         assertThrows(BadRequestException.class, () -> { // Assert it throws YOUR custom exception
-            verificationService.requestVerificationCode(invalidEmail);
+            authService.requestVerificationCode(invalidEmail);
         });
 
         // Optional: Verify no other interactions happened if validation failed early
@@ -110,7 +111,7 @@ public class VerificationServiceImplTest {
 
         // Verify that calling the method throws the expected exception
         assertThrows(DuplicateResourceException.class, () -> {
-            verificationService.requestVerificationCode(existingEmail);
+            authService.requestVerificationCode(existingEmail);
         });
 
         // Verify interaction up to the point of failure
@@ -137,7 +138,7 @@ public class VerificationServiceImplTest {
         when(sessionRepository.save(any(VerifiedSession.class))).thenReturn(expectedSession);
 
         // Act
-        VerifiedSession session = verificationService.confirmVerificationCode(TEST_EMAIL, inputCode);
+        VerifiedSession session = authService.confirmVerificationCode(TEST_EMAIL, inputCode);
 
         // Assert
         assertNotNull(session, "Session should not be null");
@@ -163,7 +164,7 @@ public class VerificationServiceImplTest {
 
         // Act & Assert
         BadRequestException thrown = assertThrows(BadRequestException.class, () -> {
-            verificationService.confirmVerificationCode(TEST_EMAIL, someCode);
+            authService.confirmVerificationCode(TEST_EMAIL, someCode);
         });
 
         assertEquals("Verification failed: No active code found or code expired/used.", thrown.getMessage());
@@ -182,7 +183,7 @@ public class VerificationServiceImplTest {
                 .thenReturn(Optional.of(activeCode));
 
         BadRequestException thrown = assertThrows(BadRequestException.class, () -> {
-            verificationService.confirmVerificationCode(TEST_EMAIL, inputCode);
+            authService.confirmVerificationCode(TEST_EMAIL, inputCode);
         });
 
         assertEquals("Verification failed: Invalid code.", thrown.getMessage());
@@ -196,7 +197,7 @@ public class VerificationServiceImplTest {
         when(sessionRepository.findByIdAndIsUsedFalseAndExpirationTimeAfter(eq(TEST_TOKEN), any()))
                 .thenReturn(Optional.of(session));
 
-        verificationService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN);
+        authService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN);
 
         assertTrue(session.isUsed());
         verify(sessionRepository).save(session);
@@ -210,7 +211,7 @@ public class VerificationServiceImplTest {
                 .thenReturn(Optional.empty());
 
         BadRequestException ex = assertThrows(BadRequestException.class, () ->
-                verificationService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN));
+                authService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN));
 
         assertEquals("Email verification token is invalid or expired. Please re-verify your email.", ex.getMessage());
     }
@@ -225,7 +226,7 @@ public class VerificationServiceImplTest {
                 .thenReturn(Optional.of(session));
 
         BadRequestException ex = assertThrows(BadRequestException.class, () ->
-                verificationService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN));
+                authService.verifyEmailSession(TEST_EMAIL, TEST_TOKEN));
 
         assertEquals("Email in request does not match verified email in token.", ex.getMessage());
     }

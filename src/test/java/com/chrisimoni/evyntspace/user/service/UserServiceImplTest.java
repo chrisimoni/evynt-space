@@ -8,10 +8,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -31,7 +29,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class UserServiceImplTest {
     @Mock
-    private VerificationService verificationService;
+    private AuthService verificationService;
     @Mock
     private UserRepository userRepository;
 
@@ -51,17 +49,7 @@ public class UserServiceImplTest {
     @DisplayName("Should successfully create a user")
     void testCreateUser_ShouldPass() {
         // Arrange
-        UUID verificationToken = UUID.randomUUID();
-
         User userModel = mockUser();
-
-        // Create a spy to mock the private/protected 'validate' method
-        UserServiceImpl spyUserService = Mockito.spy(userService);
-
-        // Mock behavior of dependencies and internal methods
-        doNothing().when(spyUserService).validate(any(User.class)); // Mock internal validation to pass
-        doNothing().when(verificationService).verifyEmailSession(
-                eq(userModel.getEmail()), eq(verificationToken)); // Mock verification to pass
 
         // Mock the save operation
         User savedUser = mockSavedUser();
@@ -69,18 +57,13 @@ public class UserServiceImplTest {
         doReturn(savedUser).when(userRepository).save(any(User.class));
 
         // Act
-        User resultUser = spyUserService.createUser(userModel, verificationToken);
+        User resultUser = userService.createUser(userModel);
 
         // Assertions
         assertNotNull(resultUser);
         assertNotNull(resultUser.getId());
         assertEquals(userModel.getEmail(), resultUser.getEmail());
         assertEquals(DEFAULT_IMAGE_URL, resultUser.getProfileImageUrl());
-
-        // Verify interactions
-        verify(spyUserService, times(1)).validate(eq(userModel)); // Verify internal validation
-        verify(verificationService, times(1))
-                .verifyEmailSession(eq(userModel.getEmail()), eq(verificationToken)); // Verify email session verification
     }
 
     @Test

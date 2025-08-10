@@ -7,7 +7,7 @@ import com.chrisimoni.evyntspace.user.dto.VerificationRequest;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.service.UserService;
-import com.chrisimoni.evyntspace.user.service.VerificationService;
+import com.chrisimoni.evyntspace.user.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ public class AuthControllerTest {
 
     // Mock beans for all dependencies of AuthController's constructor
     @MockBean
-    private VerificationService verificationService;
+    private AuthService authService;
     @MockBean
     private UserService userService; // Mocked because AuthController injects it
     @MockBean
@@ -54,7 +54,7 @@ public class AuthControllerTest {
         String requestJson = new ObjectMapper().writeValueAsString(request);
 
         // Define mock behavior for the service call
-        doNothing().when(verificationService).requestVerificationCode(request.email());
+        doNothing().when(authService).requestVerificationCode(request.email());
 
         // Act & Assert
         mockMvc.perform(post(BASE_AUTH_URL + "/request-verification-code")
@@ -66,7 +66,7 @@ public class AuthControllerTest {
                         .value("Verification code sent. Please check your email."));
 
         // Optional: Verify interaction with the service
-        verify(verificationService, times(1)).requestVerificationCode(request.email());
+        verify(authService, times(1)).requestVerificationCode(request.email());
     }
 
     @Test
@@ -86,7 +86,7 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.errors").exists()); // Assuming validation errors are returned
 
         //Optional: Verify no interaction with the service
-        verify(verificationService, never()).requestVerificationCode(anyString());
+        verify(authService, never()).requestVerificationCode(anyString());
     }
 
     @Test
@@ -108,7 +108,7 @@ public class AuthControllerTest {
         mockSession.setExpirationTime(expirationTime);
 
         // Define mock behavior for verificationService.confirmVerificationCode
-        doReturn(mockSession).when(verificationService)
+        doReturn(mockSession).when(authService)
                 .confirmVerificationCode(eq(testEmail), eq(testCode));
 
         // Act & Assert
@@ -122,7 +122,7 @@ public class AuthControllerTest {
 
 
         //Optional: Verify service method was called once with correct arguments
-        verify(verificationService, times(1))
+        verify(authService, times(1))
                 .confirmVerificationCode(eq(testEmail), eq(testCode));
     }
 
@@ -138,7 +138,7 @@ public class AuthControllerTest {
         String errorMessage = "Verification failed: Invalid code.";
 
         // Mock service to throw BadRequestException
-        doThrow(new BadRequestException(errorMessage)).when(verificationService)
+        doThrow(new BadRequestException(errorMessage)).when(authService)
                 .confirmVerificationCode(eq(testEmail), eq(testCode));
 
         // Act & Assert
@@ -150,7 +150,7 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value(errorMessage));
 
         // Verify service method was called once
-        verify(verificationService, times(1)).confirmVerificationCode(eq(testEmail), eq(testCode));
+        verify(authService, times(1)).confirmVerificationCode(eq(testEmail), eq(testCode));
     }
 
     @Test

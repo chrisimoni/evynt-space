@@ -15,29 +15,22 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validateEmailFormat;
-import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validatePassword;
-
 @Service
 public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements UserService {
     private static final String RESOURCE_NAME = "User";
     private final UserRepository repository;
-    private final VerificationService verificationService;
 
     @Value("${cloudinary.default-user-img}")
     private String defaultImage;
 
-    public UserServiceImpl(UserRepository repository, VerificationService verificationService) {
+    public UserServiceImpl(UserRepository repository) {
         super(repository, RESOURCE_NAME);
         this.repository = repository;
-        this.verificationService = verificationService;
     }
 
     @Override
     @Transactional
-    public User createUser(User model, UUID verficationToken) {
-        validate(model);
-        verificationService.verifyEmailSession(model.getEmail(), verficationToken);
+    public User createUser(User model) {
         model.setProfileImageUrl(defaultImage);
         return super.save(model);
     }
@@ -61,11 +54,5 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
 
     private Optional<User> getUserByEmail(String email) {
         return repository.findByEmail(email);
-    }
-
-    protected void validate(User model) {
-        validateEmailFormat(model.getEmail());
-        validateEmailIsUnique(model.getEmail());
-        validatePassword(model.getPassword());
     }
 }

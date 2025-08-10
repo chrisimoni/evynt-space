@@ -91,7 +91,9 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
         EventSpecification spec = new EventSpecification(criteria);
         Pageable pageable = criteria.toPageable();
 
-        return super.findAll(spec, pageable);
+        var events = super.findAll(spec, pageable);
+
+        return events;
     }
 
     @Override

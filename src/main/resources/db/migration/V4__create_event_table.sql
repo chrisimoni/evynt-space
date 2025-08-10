@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS events (
     scheduled_publish_date TIMESTAMPTZ(6) NULL,
     slug VARCHAR(255) NOT NULL UNIQUE,
     status VARCHAR(255) NOT NULL,
-    organizer_id UUID NOT NULL,
+    user_id UUID NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE, -- New events are active by default
     deactivated_at TIMESTAMPTZ(6) NULL,
     created_at TIMESTAMPTZ(6) NOT NULL DEFAULT NOW(),
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS events (
 
 -- events foreign keys
 ALTER TABLE events
-    ADD CONSTRAINT fk_events_organizer_id FOREIGN KEY (organizer_id) REFERENCES users(id);
+    ADD CONSTRAINT fk_events_user_id FOREIGN KEY (user_id) REFERENCES users(id);
 
 -- Optional: Add an index on slug for faster lookups based on URL
 CREATE UNIQUE INDEX IF NOT EXISTS idx_events_slug ON public.events (slug);

@@ -23,7 +23,7 @@ public class NotificationOutboxJob {
     private int processingBatchSize;
 
     //@Scheduled(cron = "${notification.outbox.processing-cron-expression}")
-    @Scheduled(cron = "*/10 * * * * *")
+    //@Scheduled(cron = "*/10 * * * * *")
     protected void processOutboxMessages() {
         log.info("NotificationOutboxJob running at {}. Looking for messages to process...", Instant.now());
 

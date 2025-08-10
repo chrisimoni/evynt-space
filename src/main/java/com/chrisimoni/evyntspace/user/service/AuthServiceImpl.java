@@ -1,6 +1,7 @@
 package com.chrisimoni.evyntspace.user.service;
 
 import com.chrisimoni.evyntspace.user.event.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerificationCode;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.repository.VerificationCodeRepository;
@@ -13,17 +14,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 
 import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validateEmailFormat;
+import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validatePassword;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class VerificationServiceImpl implements VerificationService{
+public class AuthServiceImpl implements AuthService {
     private final VerificationCodeRepository verificationCodeRepository;
     private final VerificationSessionRepository sessionRepository;
     private final UserService userService;
@@ -90,6 +91,15 @@ public class VerificationServiceImpl implements VerificationService{
         sessionRepository.save(verifiedSession);
     }
 
+    @Override
+    @Transactional
+    public User signup(User model, UUID verficationToken) {
+        validate(model);
+        verifyEmailSession(model.getEmail(), verficationToken);
+        return userService.createUser(model);
+    }
+
+
     String generateAndSaveCode(String email) {
         //generate 6-digit code
         //TODO: hash the generated code with passwordEncoder before saving to db
@@ -99,5 +109,11 @@ public class VerificationServiceImpl implements VerificationService{
         verificationCodeRepository.save(verificationCode);
 
         return plainCode;
+    }
+
+    protected void validate(User model) {
+        validateEmailFormat(model.getEmail());
+        userService.validateEmailIsUnique(model.getEmail());
+        validatePassword(model.getPassword());
     }
 }

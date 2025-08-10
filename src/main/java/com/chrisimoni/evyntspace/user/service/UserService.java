@@ -9,7 +9,7 @@ import org.springframework.data.domain.Page;
 import java.util.UUID;
 
 public interface UserService extends BaseService<User, UUID> {
-    User createUser(User model, UUID token);
+    User createUser(User model);
     void validateEmailIsUnique(String email);
     Page<User> findAllUsers(UserSearchCriteria filter);
 }
