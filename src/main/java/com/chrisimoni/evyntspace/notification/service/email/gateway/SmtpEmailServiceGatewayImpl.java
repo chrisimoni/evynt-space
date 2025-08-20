@@ -2,6 +2,7 @@ package com.chrisimoni.evyntspace.notification.service.email.gateway;
 
 import com.chrisimoni.evyntspace.common.exception.ExternalServiceException;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,9 @@ import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,6 +28,11 @@ public class SmtpEmailServiceGatewayImpl implements EmailServiceGateway {
     private String sender;
 
     @Override
+    @Retryable(
+            retryFor = {MailSendException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 5000, multiplier = 2)
+    )
     public void sendEmail(MessageDetails messageDetails) {
         try{
             MimeMessage message = mailSender.createMimeMessage();
@@ -35,16 +44,22 @@ public class SmtpEmailServiceGatewayImpl implements EmailServiceGateway {
             helper.setText(messageDetails.getBody(), true); //true indicates that the body is html
 
             mailSender.send(message);
-        } catch (MailAuthenticationException e) {
-            log.error("Email authentication failure: {}", e.getMessage(), e);
-            throw new ExternalServiceException("Authentication failed for email service.", e);
         } catch (MailSendException e) {
-            log.error("Failed to send email to recipient {}: {}", messageDetails.getRecipient(), e.getMessage(), e);
-            throw new ExternalServiceException("Failed to send email to " + messageDetails.getRecipient(), e);
-        } catch (Exception e) {
-            log.error("An unexpected error occurred while sending email to recipient {}: {}",
-                    messageDetails.getRecipient(), e.getMessage(), e);
-            throw new ExternalServiceException("An unexpected error occurred during email sending.", e);
+            // This is a transient network error. It will be retried by @Retryable.
+            log.warn("Failed to send email to recipient {}. Retrying...", messageDetails.getRecipient(), e);
+            throw e;
+        } catch (MailAuthenticationException | MessagingException e) {
+            log.error("Email sending failed permanently due to a messaging error for recipient {}: {}", messageDetails.getRecipient(), e.getMessage(), e);
+            throw new RuntimeException("Permanent failure sending email.", e);
         }
+    }
+
+    // The recover method is called only after all retry attempts have failed
+    @Recover
+    public void recover(MailSendException e, MessageDetails messageDetails) {
+        // This is a fallback to guarantee delivery
+        log.error("Final email sending failed for recipient {} after all retries.",
+                messageDetails.getRecipient(), e);
+        throw new ExternalServiceException("Failed to send email after retries.", e);
     }
 }
