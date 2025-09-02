@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.user.service;
+package com.chrisimoni.evyntspace.user.service.impl;
 
 import com.chrisimoni.evyntspace.user.event.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.user.model.User;
@@ -7,6 +7,8 @@ import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.repository.VerificationCodeRepository;
 import com.chrisimoni.evyntspace.user.repository.VerificationSessionRepository;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
+import com.chrisimoni.evyntspace.user.service.AuthService;
+import com.chrisimoni.evyntspace.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;

@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.event.service;
+package com.chrisimoni.evyntspace.event.service.impl;
 
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
@@ -9,6 +9,7 @@ import com.chrisimoni.evyntspace.event.enums.EventStatus;
 import com.chrisimoni.evyntspace.event.model.Event;
 import com.chrisimoni.evyntspace.event.repository.EventRepository;
 import com.chrisimoni.evyntspace.event.repository.EventSpecification;
+import com.chrisimoni.evyntspace.event.service.EventService;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.service.UserService;
 import org.apache.commons.lang3.StringUtils;
@@ -98,6 +99,11 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
     public Event findBySlug(String slug) {
         return repository.findBySlugAndStatusAndActiveTrue(slug, EventStatus.PUBLISHED)
                 .orElseThrow(() -> new ResourceNotFoundException("No event found"));
+    }
+
+    @Override
+    public int decrementSlotIfAvailable(UUID eventId) {
+        return repository.decrementSlotIfAvailable(eventId);
     }
 
     private void validateEventDates(Instant startDate, Instant endDate) {

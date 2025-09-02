@@ -4,6 +4,7 @@ import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
 import com.chrisimoni.evyntspace.user.dto.UserSearchCriteria;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.repository.UserRepository;
+import com.chrisimoni.evyntspace.user.service.impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

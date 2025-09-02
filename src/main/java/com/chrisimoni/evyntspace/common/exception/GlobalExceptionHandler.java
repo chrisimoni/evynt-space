@@ -75,6 +75,12 @@ public class GlobalExceptionHandler {
         return ErrorApiResponse.create(HttpStatus.CONFLICT.name(), ex.getMessage());
     }
 
+    @ExceptionHandler(EventSoldOutException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorApiResponse handleEventSoldOut(EventSoldOutException ex) {
+        return ErrorApiResponse.create(HttpStatus.CONFLICT.name(), ex.getMessage());
+    }
+
     @ExceptionHandler(ExternalServiceException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public ErrorApiResponse handleExternalServiceException(ExternalServiceException ex, WebRequest request) {

@@ -21,7 +21,7 @@ import static com.chrisimoni.evyntspace.notification.constant.NotificationTempla
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class UserEventListener {
+public class UserNotificationListener {
     private final NotificationService notificationService;
     private final NotificationContentBuilder contentBuilder;
 

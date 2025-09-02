@@ -39,8 +39,13 @@ public class NotificationContentBuilder {
 
     private String getSubjectForTemplate(MessageTemplate messageTemplate, Map<String, Object> model) {
         return switch (messageTemplate) {
-            case VERIFICATION_NOTIFICATION -> "Verify Your Account - "+ model.get(VERIFICATION_CODE_KEY);
+            case VERIFICATION_NOTIFICATION -> "Verify Your Account - " + model.get(VERIFICATION_CODE_KEY);
             case PASSWORD_RESET_NOTIFICATION -> "Password Reset Request";
+            case RESERVATION_CONFIRMATION_NOTIFICATION ->  {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> eventModel = (Map<String, Object>) model.get("event");
+                yield "Order Confirmation for " + eventModel.get("title");
+            }
             default -> "Important Notification";
         };
     }

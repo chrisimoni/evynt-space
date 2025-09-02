@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.user.service;
+package com.chrisimoni.evyntspace.user.service.impl;
 
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
 import com.chrisimoni.evyntspace.common.service.BaseServiceImpl;
@@ -6,6 +6,7 @@ import com.chrisimoni.evyntspace.user.dto.UserSearchCriteria;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.repository.UserRepository;
 import com.chrisimoni.evyntspace.user.repository.UserSpecification;
+import com.chrisimoni.evyntspace.user.service.UserService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;

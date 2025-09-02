@@ -12,4 +12,6 @@ public interface EventService extends BaseService<Event, UUID> {
     Event updateEvent(Event eventToUpdate, Event previousEvent);
     Page<Event> findAllEvents(EventSearchCriteria searchCriteria, boolean forPublic);
     Event findBySlug(String slug);
+    Event findById(UUID id);
+    int decrementSlotIfAvailable(UUID eventId);
 }

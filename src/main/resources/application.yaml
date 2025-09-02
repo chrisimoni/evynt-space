@@ -17,9 +17,9 @@ spring:
 #        jdbc:
 #          lob:
 #            non_contextual_creation: true
-        format_sql: true # Format SQL queries for readability
+        #format_sql: true # Format SQL queries for readability
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true # Show SQL queries in the console
+    #show-sql: true # Show SQL queries in the console
 
   # --- Flyway Configuration ---
   flyway:
@@ -71,3 +71,7 @@ cloudinary:
   folder-prefix: es-uploads
   default-event-img: https://res.cloudinary.com/drbloq03w/image/upload/v1750084712/es-uploads/mew89uk7esiiklyjzjvl.jpg
   default-user-img: https://res.cloudinary.com/drbloq03w/image/upload/v1750592867/es-uploads/lczaaf0wrm27dbgun05m.jpg
+
+stripe:
+  api:
+    secret-key: ${STRIPE_API_SECRET_KEY}
