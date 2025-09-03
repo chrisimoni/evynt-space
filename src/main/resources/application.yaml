@@ -1,6 +1,7 @@
 spring:
   application:
     name: evynt-space
+    base-url: ${APP_BASE_URL}
   datasource:
     url: ${DATASOURCE_URL}
     username: ${DATASOURCE_USERNAME}

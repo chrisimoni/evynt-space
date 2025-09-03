@@ -58,7 +58,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollmentRepository.save(enrollment);
 
         String checkoutUrl = paymentService.createCheckoutSession(
-                enrollment.getReservationNumber(), email, event.getTitle(), event.getPrice());
+                enrollment.getReservationNumber(), email, event.getTitle(), event.getPrice(), event.getEventImageUrl());
 
         return createConfirmationDetails(enrollment, checkoutUrl);
     }

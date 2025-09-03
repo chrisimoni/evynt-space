@@ -13,18 +13,25 @@ import java.math.BigDecimal;
 
 @Service
 public class StripePaymentServiceImpl implements PaymentService {
+    @Value("${spring.application.base-url}")
+    private String baseUrl;
+
     public StripePaymentServiceImpl(@Value("${stripe.api.secret-key}") String secretKey) {
         Stripe.apiKey = secretKey; // initialize Stripe SDK
     }
 
     @Override
-    public String createCheckoutSession(String reservationNumber, String customerEmail, String eventTitle, BigDecimal amount) {
+    public String createCheckoutSession(
+            String reservationNumber, String customerEmail, String eventTitle, BigDecimal amount, String eventImageUrl) {
         try {
+            String successUrl = baseUrl + "/checkout/success";
+            String cancelUrl = baseUrl + "/checkout/cancel";
+
             SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setCustomerEmail(customerEmail)
-                    .setSuccessUrl("https://yourwebsite.com/success")
-                    .setCancelUrl("https://yourwebsite.com/cancel")
+                    .setSuccessUrl(successUrl)
+                    .setCancelUrl(cancelUrl)
                     .addLineItem(SessionCreateParams.LineItem.builder()
                             .setQuantity(1L)
                             .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
@@ -33,6 +40,7 @@ public class StripePaymentServiceImpl implements PaymentService {
                                     .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                             .setName(eventTitle)
                                             .putMetadata("reservationNumber", reservationNumber)
+                                            .addImage(eventImageUrl)
                                             .build()
                                     )
                                     .build()
