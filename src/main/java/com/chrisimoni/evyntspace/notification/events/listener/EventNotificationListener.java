@@ -1,6 +1,6 @@
-package com.chrisimoni.evyntspace.notification.listener;
+package com.chrisimoni.evyntspace.notification.events.listener;
 
-import com.chrisimoni.evyntspace.event.event.ReservationConfirmationEvent;
+import com.chrisimoni.evyntspace.event.events.ReservationConfirmationEvent;
 import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.service.NotificationContentBuilder;

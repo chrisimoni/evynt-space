@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.event.event;
+package com.chrisimoni.evyntspace.event.events;
 
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;

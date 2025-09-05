@@ -1,6 +1,6 @@
 package com.chrisimoni.evyntspace.user.service.impl;
 
-import com.chrisimoni.evyntspace.user.event.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.user.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerificationCode;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;

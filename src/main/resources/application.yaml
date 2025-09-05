@@ -76,3 +76,5 @@ cloudinary:
 stripe:
   api:
     secret-key: ${STRIPE_API_SECRET_KEY}
+  webhook:
+    secret: ${STRIPE_WEBHOOK_SECRET}

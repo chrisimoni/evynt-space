@@ -5,7 +5,7 @@ import com.chrisimoni.evyntspace.common.exception.EventSoldOutException;
 import com.chrisimoni.evyntspace.event.dto.ConfirmationDetails;
 import com.chrisimoni.evyntspace.event.enums.EventType;
 import com.chrisimoni.evyntspace.event.enums.PaymentStatus;
-import com.chrisimoni.evyntspace.event.event.ReservationConfirmationEvent;
+import com.chrisimoni.evyntspace.event.events.ReservationConfirmationEvent;
 import com.chrisimoni.evyntspace.event.model.Enrollment;
 import com.chrisimoni.evyntspace.event.model.Event;
 import com.chrisimoni.evyntspace.event.model.PhysicalEventDetails;
@@ -14,6 +14,7 @@ import com.chrisimoni.evyntspace.event.service.EnrollmentService;
 import com.chrisimoni.evyntspace.event.service.EventService;
 import com.chrisimoni.evyntspace.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validateEmail
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EnrollmentServiceImpl implements EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final EventService eventService;
@@ -38,7 +40,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         validateEmailFormat(email);
         Event event = eventService.findById(eventId);
 
-        Optional<Enrollment> existingEnrollment = enrollmentRepository.findByEventIdAndEmail(event.getId(), email);
+        Optional<Enrollment> existingEnrollment = enrollmentRepository
+                .findByEventIdAndEmailAndPaymentStatus(event.getId(), email, PaymentStatus.CONFIRMED);
         if (existingEnrollment.isPresent()) {
             throw new DuplicateResourceException("This email is already enrolled in this event.");
         }
@@ -50,6 +53,57 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
         // All subsequent logic is for free events
         return handleFreeEvent(event, firstName, lastName, email);
+    }
+
+    @Override
+    @Transactional
+    public void updateReservationStatus(String reservationNumber, PaymentStatus status, String paymentReference) {
+        Optional<Enrollment> optionalEnrollment = enrollmentRepository.findByReservationNumber(reservationNumber);
+        if (optionalEnrollment.isEmpty()) {
+            // Log an error, this is an unexpected state
+            log.error("Received webhook for non-existent or already processed reservation: {}", reservationNumber);
+            return;
+        }
+
+        Enrollment enrollment = optionalEnrollment.get();
+        enrollment.setPaymentReference(paymentReference);
+        
+        if (PaymentStatus.CONFIRMED.equals(status)) {
+            handleConfirmedPayment(enrollment);
+            return;
+        }
+
+        // Handle all other statuses (CANCELED, FAILED)
+        enrollment.setPaymentStatus(status);
+        enrollmentRepository.save(enrollment);
+    }
+
+    private void handleConfirmedPayment(Enrollment enrollment) {
+        int updatedRows = eventService.decrementSlotIfAvailable(enrollment.getEventId());
+
+        // Handle the race condition: payment succeeded, but the slot is gone
+        if (updatedRows == 0) {
+            log.warn("Payment succeeded but the last slot was just taken. Initiating refund for reservation: {}",
+                    enrollment.getReservationNumber());
+            enrollment.setPaymentStatus(PaymentStatus.REFUNDED);
+            enrollmentRepository.save(enrollment);
+            // TODO: Implement refund logic
+            // paymentService.initiateRefund(paymentId);
+            return;
+        }
+
+        // Normal successful flow: update status and send notification
+        enrollment.setPaymentStatus(PaymentStatus.CONFIRMED);
+        enrollmentRepository.save(enrollment);
+
+        Event event = eventService.findById(enrollment.getEventId());
+        triggerConfirmationNotificationEvent(
+                enrollment.getReservationNumber(),
+                enrollment.getEmail(),
+                enrollment.getFirstName(),
+                enrollment.getLastName(),
+                event
+        );
     }
 
     private ConfirmationDetails handlePaidEvent(Event event, String firstName, String lastName, String email) {

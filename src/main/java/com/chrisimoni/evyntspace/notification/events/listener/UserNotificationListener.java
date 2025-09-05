@@ -1,6 +1,6 @@
-package com.chrisimoni.evyntspace.notification.listener;
+package com.chrisimoni.evyntspace.notification.events.listener;
 
-import com.chrisimoni.evyntspace.user.event.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.user.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.service.NotificationContentBuilder;
