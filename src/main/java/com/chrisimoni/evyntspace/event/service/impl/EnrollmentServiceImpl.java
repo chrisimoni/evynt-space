@@ -5,6 +5,7 @@ import com.chrisimoni.evyntspace.common.exception.EventSoldOutException;
 import com.chrisimoni.evyntspace.event.dto.ConfirmationDetails;
 import com.chrisimoni.evyntspace.event.enums.EventType;
 import com.chrisimoni.evyntspace.event.enums.PaymentStatus;
+import com.chrisimoni.evyntspace.event.events.PaymentRefundEvent;
 import com.chrisimoni.evyntspace.event.events.ReservationConfirmationEvent;
 import com.chrisimoni.evyntspace.event.model.Enrollment;
 import com.chrisimoni.evyntspace.event.model.Event;
@@ -46,6 +47,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new DuplicateResourceException("This email is already enrolled in this event.");
         }
 
+//        if (event.getNumberOfSlots() <= 0) {
+//            throw new EventSoldOutException("No slots available for this event.");
+//        }
+
         // Check if the event is a paid event and handle it separately
         if (event.getPrice() != null && event.getPrice().compareTo(BigDecimal.ZERO) > 0) {
             return handlePaidEvent(event, firstName, lastName, email);
@@ -79,6 +84,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     }
 
     private void handleConfirmedPayment(Enrollment enrollment) {
+        Event event = eventService.findById(enrollment.getEventId());
         int updatedRows = eventService.decrementSlotIfAvailable(enrollment.getEventId());
 
         // Handle the race condition: payment succeeded, but the slot is gone
@@ -87,8 +93,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                     enrollment.getReservationNumber());
             enrollment.setPaymentStatus(PaymentStatus.REFUNDED);
             enrollmentRepository.save(enrollment);
-            // TODO: Implement refund logic
-            // paymentService.initiateRefund(paymentId);
+            paymentService.initiateRefund(enrollment.getPaymentReference());
+            eventPublisher.publishEvent(new PaymentRefundEvent(
+                    this, enrollment.getEmail(), enrollment.getFirstName(), event.getTitle(), event.getPrice()));
             return;
         }
 
@@ -96,7 +103,6 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollment.setPaymentStatus(PaymentStatus.CONFIRMED);
         enrollmentRepository.save(enrollment);
 
-        Event event = eventService.findById(enrollment.getEventId());
         triggerConfirmationNotificationEvent(
                 enrollment.getReservationNumber(),
                 enrollment.getEmail(),

@@ -9,13 +9,16 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.Refund;
 import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -94,6 +97,22 @@ public class StripePaymentServiceImpl implements PaymentService {
 
         eventPublisher.publishEvent(new PaymentConfirmationEvent(this, data.reservationNumber(), paymentStatus, data.paymentReference()));
         log.info("Successfully published a PaymentConfirmationEvent for reservation: {}", data.reservationNumber());
+    }
+
+    @Override
+    @Async
+    public void initiateRefund(String paymentIntentId) {
+        RefundCreateParams params = RefundCreateParams.builder()
+                .setPaymentIntent(paymentIntentId)
+                .build();
+
+        try {
+            Refund.create(params);
+            log.info("Successfully initiated refund for Payment Intent: {}", paymentIntentId);
+        } catch (StripeException e) {
+            log.error("Error occurred while initiating refund: {}", e.getMessage(), e);
+            throw new ExternalServiceException("Error occurred while initiating refund", e);
+        }
     }
 
     private Event verifySignature(String payload, String sigHeader) {

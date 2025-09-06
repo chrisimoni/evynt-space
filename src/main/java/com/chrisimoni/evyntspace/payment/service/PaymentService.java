@@ -7,4 +7,5 @@ public interface PaymentService {
     String createCheckoutSession(
             String reservationNumber, String customerEmail, String eventTitle, BigDecimal amount, String eventImageUrl);
     void handleStripeWebhook(String payload, String sigHeader);
+    void initiateRefund(String paymentIntentId);
 }

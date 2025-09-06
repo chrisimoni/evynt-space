@@ -1,5 +1,6 @@
 package com.chrisimoni.evyntspace.notification.events.listener;
 
+import com.chrisimoni.evyntspace.event.events.PaymentRefundEvent;
 import com.chrisimoni.evyntspace.event.events.ReservationConfirmationEvent;
 import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
@@ -16,6 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.chrisimoni.evyntspace.notification.constant.NotificationTemplateConstants.CODE_VALIDITY_KEY;
+import static com.chrisimoni.evyntspace.notification.constant.NotificationTemplateConstants.VERIFICATION_CODE_KEY;
 import static com.chrisimoni.evyntspace.notification.util.NotificationUtil.createMapLink;
 import static com.chrisimoni.evyntspace.notification.util.NotificationUtil.generateQrCodeDataUrl;
 
@@ -25,6 +28,21 @@ import static com.chrisimoni.evyntspace.notification.util.NotificationUtil.gener
 public class EventNotificationListener {
     private final NotificationService notificationService;
     private final NotificationContentBuilder contentBuilder;
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void handlePaymentRefundEvent(PaymentRefundEvent event) {
+        log.info("PaymentRefundEvent received for {}.", event.getEmail());
+
+        Map<String, Object> templateModel = new HashMap<>();
+        templateModel.put("firstName", event.getFirstName());
+        templateModel.put("eventTitle", event.getEventTitle());
+        templateModel.put("amount", event.getAmount());
+        MessageDetails messageDetails = contentBuilder.createMessageDetails(
+                event.getEmail(), MessageTemplate.PAYMENT_REFUND_NOTIFICATION, templateModel);
+
+        notificationService.send(messageDetails);
+    }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async

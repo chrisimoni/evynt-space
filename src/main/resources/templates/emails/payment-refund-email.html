@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Refund Confirmation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacsSytemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f6f6f6; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); padding: 20px; }
+        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee; }
+        .header h1 { color: #333333; font-size: 24px; margin: 0; }
+        .content { padding: 20px 0; color: #555555; line-height: 1.6; }
+        .content p { margin: 0 0 10px; }
+        .amount-box { background-color: #f9f9f9; border: 1px solid #f0f0f0; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
+        .amount-box h2 { margin: 0; color: #d9534f; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Evyntspace - Payment Refunded</h1>
+    </div>
+    <div class="content">
+        <p th:text="|Hi ${firstName},|">Hi [First Name],</p>
+        <p>We're writing to confirm that a refund has been successfully initiated for your recent payment for the event:</p>
+        <p style="font-weight: bold; color: #333333;" th:text="${eventTitle}">[Event Title]</p>
+
+        <div class="amount-box">
+            <p>Refund Amount:</p>
+            <h2 th:text="${#numbers.formatCurrency(amount)}">5.00 USD</h2>
+        </div>
+
+        <p><strong>Reason for Refund:</strong></p>
+        <p>Event is sold out, and payment was received for the last slot.</p>
+
+        <p><strong>Refund Timeline:</strong></p>
+        <p>Your refund has been submitted to your bank. Please allow approximately 5-10 business days for the funds to appear on your account statement.</p>
+
+        <p>If you have any questions, please don't hesitate to reach out to our support team.</p>
+        <p>Thank you,</p>
+        <p>The Evyntspace Team</p>
+    </div>
+</div>
+</body>
+</html>
