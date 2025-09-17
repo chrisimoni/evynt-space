@@ -47,9 +47,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new DuplicateResourceException("This email is already enrolled in this event.");
         }
 
-//        if (event.getNumberOfSlots() <= 0) {
-//            throw new EventSoldOutException("No slots available for this event.");
-//        }
+        if (event.getNumberOfSlots() <= 0) {
+            throw new EventSoldOutException("No slots available for this event.");
+        }
 
         // Check if the event is a paid event and handle it separately
         if (event.getPrice() != null && event.getPrice().compareTo(BigDecimal.ZERO) > 0) {

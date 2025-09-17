@@ -8,6 +8,7 @@ import com.chrisimoni.evyntspace.user.repository.UserRepository;
 import com.chrisimoni.evyntspace.user.repository.UserSpecification;
 import com.chrisimoni.evyntspace.user.service.UserService;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements UserService {
     private static final String RESOURCE_NAME = "User";
     private final UserRepository repository;

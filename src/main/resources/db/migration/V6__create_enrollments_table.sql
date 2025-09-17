@@ -13,4 +13,6 @@ CREATE TABLE IF NOT EXISTS enrollments (
     CONSTRAINT fk_enrollments_event_id FOREIGN KEY (event_id) REFERENCES events(id)
 );
 
-CREATE INDEX idx_event_user_email ON enrollments (event_id, email);
+CREATE INDEX idx_enrollments_event_email_payment_status ON enrollments (event_id, email, payment_status);
+
+CREATE INDEX idx_enrollments_reservation_number ON enrollments (reservation_number);
