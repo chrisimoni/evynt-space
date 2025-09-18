@@ -18,17 +18,17 @@ public class PaymentController {
 
     //TODO: update to return no content
     @PostMapping("/stripe/webhook")
-    public ResponseEntity<String> handleStripeWebhook(@RequestBody String payload,
+    public ResponseEntity<Void> handleStripeWebhook(@RequestBody String payload,
                                                       @RequestHeader("Stripe-Signature") String sigHeader) {
         paymentService.handleStripeWebhook(payload, sigHeader);
-        return new ResponseEntity<>("Success", HttpStatus.OK);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/stripe/connect/webhook")
-    public ResponseEntity<String> handleStripeConnectAccountWebhook(@RequestBody String payload,
+    public ResponseEntity<Void> handleStripeConnectAccountWebhook(@RequestBody String payload,
                                                       @RequestHeader("Stripe-Signature") String sigHeader) {
         paymentService.handleStripeConnectAccountWebhook(payload, sigHeader);
-        return new ResponseEntity<>("Success", HttpStatus.OK);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("stripe/connect/onboard")
