@@ -34,6 +34,8 @@ public record EventCreateRequest(
         @NotNull(message = "Number of slots is required.")
         @Min(value = 1, message = "Number of slots must be at least 1.")
         Integer numberOfSlots,
+        @NotNull(message = "isPaid field cannot be null")
+        Boolean isPaid,
         // Price is optional, for free events it can be null or 0
         @Min(value = 0, message = "Price cannot be negative.")
         BigDecimal price,

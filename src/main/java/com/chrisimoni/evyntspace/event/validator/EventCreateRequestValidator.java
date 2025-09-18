@@ -17,7 +17,8 @@ public class EventCreateRequestValidator implements ConstraintValidator<ValidEve
                 || (validateOnlyOneEventDetailsIsProvided(request, context)
                 && validateEventDetailsByType(request, context)
                 && validateDates(request, context)
-                && isValidCountry(request, context));
+                && isValidCountry(request, context)
+                &&validatePrice(request, context));
     }
 
     private boolean validateOnlyOneEventDetailsIsProvided(EventCreateRequest request, ConstraintValidatorContext context) {
@@ -95,6 +96,16 @@ public class EventCreateRequestValidator implements ConstraintValidator<ValidEve
             return false;
         }
 
+        return true;
+    }
+
+    private boolean validatePrice(EventCreateRequest request, ConstraintValidatorContext context) {
+        if (Boolean.TRUE.equals(request.isPaid()) && request.price() == null) {
+            context.buildConstraintViolationWithTemplate("Price cannot be null for a paid event.")
+                    .addPropertyNode("price")
+                    .addConstraintViolation();
+            return false;
+        }
         return true;
     }
 }

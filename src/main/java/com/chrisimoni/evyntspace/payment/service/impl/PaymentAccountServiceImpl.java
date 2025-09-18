@@ -16,8 +16,8 @@ public class PaymentAccountServiceImpl implements PaymentAccountService {
     private final PaymentAccountRepository paymentAccountRepository;
 
     @Override
-    public Optional<PaymentAccount> findByUserIdAndPlatform(UUID userId, PaymentPlatform platformName) {
-        return paymentAccountRepository.findByUserIdAndPlatformName(userId, platformName);
+    public Optional<PaymentAccount> findByUserId(UUID userId) {
+        return paymentAccountRepository.findByUserId(userId);
     }
 
     @Override

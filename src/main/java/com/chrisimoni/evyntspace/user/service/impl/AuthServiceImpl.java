@@ -102,7 +102,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
-    String generateAndSaveCode(String email) {
+    public String generateAndSaveCode(String email) {
         //generate 6-digit code
         //TODO: hash the generated code with passwordEncoder before saving to db
         String plainCode = String.valueOf((int)(Math.random() * 900000) + 100000);

@@ -40,6 +40,7 @@ public class Event extends ActivatableEntity {
 
     @Column(nullable = false)
     private Integer numberOfSlots;
+    private boolean isPaid;
     BigDecimal price;
     private String eventImageUrl;
     private String slug;

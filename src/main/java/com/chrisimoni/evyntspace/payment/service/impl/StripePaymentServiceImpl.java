@@ -32,7 +32,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static com.chrisimoni.evyntspace.payment.util.PaymentUtil.convertAmountToCent;
-import static com.chrisimoni.evyntspace.payment.util.PaymentUtil.getCountryCode;
 
 @Service
 @Slf4j
@@ -139,8 +138,15 @@ public class StripePaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public StripeOnboardingResponse createAndOnboardStripeAccount(UUID userId) {
-        return paymentAccountService.findByUserIdAndPlatform(userId, PaymentPlatform.STRIPE)
-                .map(this::onboardExistingAccount)
+        return paymentAccountService.findByUserId(userId)
+                .map(account -> {
+                    // If the account is already enabled, return a DTO without a link.
+                    if (Boolean.TRUE.equals(account.isChargesEnabled()) && Boolean.TRUE.equals(account.isPayoutsEnabled())) {
+                        return new StripeOnboardingResponse(account.getAccountId(), null); // Or an empty string
+                    }
+                    // If not, proceed to generate the onboarding link.
+                    return onboardExistingAccount(account);
+                })
                 .orElseGet(() -> createNewStripeAccount(userId));
     }
 
@@ -189,7 +195,7 @@ public class StripePaymentServiceImpl implements PaymentService {
         AccountCreateParams params = AccountCreateParams.builder()
                 .setType(AccountCreateParams.Type.STANDARD)
                 .setEmail(organizerEmail)
-                .setCountry(getCountryCode(country))
+                .setCountry(country)
                 .setBusinessType(AccountCreateParams.BusinessType.INDIVIDUAL)
                 .setCapabilities(capabilities)
                 .putMetadata("platform_user_id", userId)

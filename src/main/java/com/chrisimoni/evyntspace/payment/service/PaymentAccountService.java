@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PaymentAccountService {
-    Optional<PaymentAccount> findByUserIdAndPlatform(UUID userId, PaymentPlatform platformName);
+    Optional<PaymentAccount> findByUserId(UUID userId);
     PaymentAccount save(PaymentAccount paymentAccount);
     PaymentAccount findByAccountId(String accountId);
 }

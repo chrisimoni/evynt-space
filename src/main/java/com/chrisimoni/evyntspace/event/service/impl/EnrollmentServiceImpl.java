@@ -162,6 +162,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 event.getTitle(),
                 event.getSummary(),
                 event.getEventType().name(),
+                event.isPaid(),
                 event.getPrice(),
                 event.getEventImageUrl(),
                 venue,

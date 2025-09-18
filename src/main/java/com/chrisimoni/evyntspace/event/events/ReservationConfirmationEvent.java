@@ -15,6 +15,7 @@ public class ReservationConfirmationEvent extends ApplicationEvent {
     private final String eventTitle;
     private final String eventSummary;
     private final String eventType;
+    private final boolean isPaid;
     private final BigDecimal price;
     private final String eventImageUrl;
     private final String venueName;
@@ -26,7 +27,7 @@ public class ReservationConfirmationEvent extends ApplicationEvent {
 
     public ReservationConfirmationEvent(Object source, String reservationNumber, String email,
                                         String firstName, String lastName, String eventTitle,
-                                        String eventSummary, String eventType, BigDecimal price,
+                                        String eventSummary, String eventType, boolean isPaid, BigDecimal price,
                                         String eventImageUrl, String venueName, String venueAddress,
                                         String meetingLink, String organizer, String organizerEmail) {
         super(source);
@@ -37,6 +38,7 @@ public class ReservationConfirmationEvent extends ApplicationEvent {
         this.eventTitle = eventTitle;
         this.eventSummary = eventSummary;
         this.eventType = eventType;
+        this.isPaid = isPaid;
         this.price = price;
         this.eventImageUrl = eventImageUrl;
         this.venueName = venueName;

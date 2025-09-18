@@ -66,7 +66,7 @@ public class EventNotificationListener {
             put("title", event.getEventTitle());
             put("summary", event.getEventSummary());
             put("imageUrl", event.getEventImageUrl());
-            put("isFree", event.getPrice().doubleValue() == 0.0);
+            put("isFree", event.isPaid());
             put("fee", event.getPrice());
             put("type", event.getEventType());
             put("venue", event.getVenueName());

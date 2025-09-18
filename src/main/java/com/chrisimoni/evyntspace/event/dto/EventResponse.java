@@ -33,6 +33,7 @@ public record EventResponse(
         Instant createdAt,
         Instant updatedAt,
         boolean active,
-        Instant deactivatedAt
+        Instant deactivatedAt,
+        boolean isPaid
 ) {
 }

@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page;
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface EventMapper {
+    @Mapping(target = "organizer", ignore = true)
+    @Mapping(target = "paid", source = "isPaid", defaultValue = "false")
     Event toModel(EventCreateRequest dto);
     EventResponse toResponseDto(Event event);
 

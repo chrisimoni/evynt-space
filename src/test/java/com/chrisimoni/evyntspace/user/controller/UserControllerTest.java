@@ -281,7 +281,8 @@ public class UserControllerTest {
                 "Doey",
                 "TestCompany",
                 "1234",
-                "profile_url");
+                "profile_url",
+                "US");
     }
 
     private UserResponse mockUserResponse(User user) {
@@ -295,6 +296,7 @@ public class UserControllerTest {
                 user.isActive(),
                 user.getDeactivatedAt(),
                 user.getProfileImageUrl(),
+                user.getCountryCode(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
