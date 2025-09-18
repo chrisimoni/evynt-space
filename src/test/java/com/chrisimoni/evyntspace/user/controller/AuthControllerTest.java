@@ -193,6 +193,7 @@ public class AuthControllerTest {
                 "Doe",
                 "StrongPassword123!",
                 "TestCompany",
-                "1234567890");
+                "1234567890",
+                "US");
     }
 }

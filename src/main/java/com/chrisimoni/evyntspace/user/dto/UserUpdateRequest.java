@@ -9,6 +9,7 @@ public record UserUpdateRequest(
         String lastName,
         String company,
         String phoneNumber,
-        String profileImageUrl
+        String profileImageUrl,
+        String countryCode
 ) {
 }

@@ -24,6 +24,9 @@ public record UserCreateRequest(
         @Size(min = 8, message = "Password must be at least 8 characters long")
         String password,
         String company,
-        String phoneNumber
+        String phoneNumber,
+        @NotBlank(message = "Country code cannot be empty")
+        @Size(min = 2, max = 2, message = "Country code must be 2 characters")
+        String countryCode
 ) {
 }

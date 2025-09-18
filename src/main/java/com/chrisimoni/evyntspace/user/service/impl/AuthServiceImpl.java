@@ -20,8 +20,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 
-import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validateEmailFormat;
-import static com.chrisimoni.evyntspace.common.util.ValidationUtil.validatePassword;
+import static com.chrisimoni.evyntspace.common.util.ValidationUtil.*;
 
 @Service
 @RequiredArgsConstructor
@@ -98,6 +97,7 @@ public class AuthServiceImpl implements AuthService {
     public User signup(User model, UUID verficationToken) {
         validate(model);
         verifyEmailSession(model.getEmail(), verficationToken);
+        model.setCountryCode(model.getCountryCode().toUpperCase());
         return userService.createUser(model);
     }
 
@@ -117,5 +117,6 @@ public class AuthServiceImpl implements AuthService {
         validateEmailFormat(model.getEmail());
         userService.validateEmailIsUnique(model.getEmail());
         validatePassword(model.getPassword());
+        validateCountryCode(model.getCountryCode());
     }
 }

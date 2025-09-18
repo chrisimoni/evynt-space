@@ -47,6 +47,9 @@ public class StripePaymentServiceImpl implements PaymentService {
     @Value("${stripe.webhook.secret}")
     private String webhookSecret;
 
+    @Value("${stripe.webhook.connect-secret}")
+    private String connectWebhookSecret;
+
     private record WebhookData(String reservationNumber, String paymentReference) {}
 
     public StripePaymentServiceImpl(
@@ -99,7 +102,7 @@ public class StripePaymentServiceImpl implements PaymentService {
 
     @Override
     public void handleStripeWebhook(String payload, String sigHeader) {
-        Event event = verifySignature(payload, sigHeader);
+        Event event = verifySignature(payload, sigHeader, webhookSecret);
 
         WebhookData data = extractDataFromEvent(event);
         if (data == null) {
@@ -155,7 +158,7 @@ public class StripePaymentServiceImpl implements PaymentService {
             User user = userService.findById(userId);
 
             final String stripeAccountId = createConnectAccount(
-                    userId.toString(), user.getEmail(), "US"
+                    userId.toString(), user.getEmail(), user.getCountryCode()
             );
 
             PaymentAccount account = new PaymentAccount();
@@ -200,8 +203,8 @@ public class StripePaymentServiceImpl implements PaymentService {
     private String createAccountLink(String accountId) throws StripeException {
         AccountLinkCreateParams params = AccountLinkCreateParams.builder()
                 .setAccount(accountId)
-                .setRefreshUrl("https://your-app.com/stripe/refresh-onboarding")
-                .setReturnUrl("https://your-app.com/stripe/onboarding-complete")
+                .setRefreshUrl("http://localhost:8080/payment/stripe/refresh-onboarding")
+                .setReturnUrl("http://localhost:8080/payment/stripe/onboarding-complete")
                 .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
                 .build();
 
@@ -210,7 +213,7 @@ public class StripePaymentServiceImpl implements PaymentService {
         return accountLink.getUrl();
     }
 
-    private Event verifySignature(String payload, String sigHeader) {
+    private Event verifySignature(String payload, String sigHeader, String webhookSecret) {
         try {
             return Webhook.constructEvent(payload, sigHeader, webhookSecret);
         } catch (SignatureVerificationException e) {
@@ -258,7 +261,7 @@ public class StripePaymentServiceImpl implements PaymentService {
 
     @Override
     public void handleStripeConnectAccountWebhook(String payload, String sigHeader) {
-        Event event = verifySignature(payload, sigHeader);
+        Event event = verifySignature(payload, sigHeader, connectWebhookSecret);
         if ("account.updated".equals(event.getType())) {
             Optional<StripeObject> objectOptional = event.getDataObjectDeserializer().getObject();
             if (objectOptional.isEmpty()) {

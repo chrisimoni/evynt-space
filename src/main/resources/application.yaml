@@ -78,3 +78,4 @@ stripe:
     secret-key: ${STRIPE_API_SECRET_KEY}
   webhook:
     secret: ${STRIPE_WEBHOOK_SECRET}
+    connect-secret: ${STRIPE_CONNECT_WEBHOOK_SECRET}

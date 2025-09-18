@@ -13,6 +13,7 @@ public record UserResponse(
         boolean active,
         Instant deactivatedAt,
         String profileImageUrl,
+        String countryCode,
         Instant createdAt,
         Instant updatedAt
 ) {

@@ -22,4 +22,5 @@ public class User extends ActivatableEntity {
     private String company;
     private String phoneNumber;
     private String profileImageUrl;
+    private String countryCode;
 }
