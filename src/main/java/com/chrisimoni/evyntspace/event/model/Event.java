@@ -4,6 +4,7 @@ package com.chrisimoni.evyntspace.event.model;
 import com.chrisimoni.evyntspace.common.model.ActivatableEntity;
 import com.chrisimoni.evyntspace.event.enums.EventStatus;
 import com.chrisimoni.evyntspace.event.enums.EventType;
+import com.chrisimoni.evyntspace.event.enums.PayoutStatus;
 import com.chrisimoni.evyntspace.user.model.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -41,10 +42,11 @@ public class Event extends ActivatableEntity {
     @Column(nullable = false)
     private Integer numberOfSlots;
     private boolean isPaid;
-    BigDecimal price;
+    private BigDecimal price;
     private String eventImageUrl;
     private String slug;
 
+    private Instant registrationCloseDate;
     private Instant startDate;
     private Instant endDate;
 
@@ -56,4 +58,9 @@ public class Event extends ActivatableEntity {
     private EventStatus status = EventStatus.PUBLISHED;
     private Instant publishedDate = Instant.now();
     private Instant scheduledPublishDate;
+
+    @Enumerated(EnumType.STRING)
+    private PayoutStatus payoutStatus;
+    private BigDecimal payoutAmount;
+    private Instant payoutDate;
 }

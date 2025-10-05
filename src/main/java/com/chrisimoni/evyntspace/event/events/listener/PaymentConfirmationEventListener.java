@@ -19,6 +19,6 @@ public class PaymentConfirmationEventListener {
     public void handlePaymentConfirmationEvent(PaymentConfirmationEvent event) {
         log.info("PaymentConfirmationEvent received for {}.", event.getReservationNumber());
         enrollmentService.updateReservationStatus(
-                event.getReservationNumber(), event.getStatus(), event.getPaymentReference());
+                event.getReservationNumber(), event.getStatus(), event.getTransactionId());
     }
 }

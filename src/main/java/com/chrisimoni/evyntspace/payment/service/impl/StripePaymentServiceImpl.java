@@ -3,11 +3,15 @@ package com.chrisimoni.evyntspace.payment.service.impl;
 import com.chrisimoni.evyntspace.common.exception.ExternalServiceException;
 import com.chrisimoni.evyntspace.event.enums.PaymentStatus;
 import com.chrisimoni.evyntspace.payment.dto.StripeOnboardingResponse;
+import com.chrisimoni.evyntspace.payment.enums.CurrencyType;
 import com.chrisimoni.evyntspace.payment.enums.PaymentPlatform;
+import com.chrisimoni.evyntspace.payment.enums.TransactionStatus;
 import com.chrisimoni.evyntspace.payment.events.PaymentConfirmationEvent;
 import com.chrisimoni.evyntspace.payment.model.PaymentAccount;
+import com.chrisimoni.evyntspace.payment.model.Transaction;
 import com.chrisimoni.evyntspace.payment.service.PaymentAccountService;
 import com.chrisimoni.evyntspace.payment.service.PaymentService;
+import com.chrisimoni.evyntspace.payment.service.TransactionService;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.service.UserService;
 import com.stripe.Stripe;
@@ -26,8 +30,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +45,7 @@ public class StripePaymentServiceImpl implements PaymentService {
     private final PaymentAccountService paymentAccountService;
     private final ApplicationEventPublisher eventPublisher;
     private final UserService userService;
+    private final TransactionService transactionService;
 
     @Value("${spring.application.base-url}")
     private String baseUrl;
@@ -55,10 +62,12 @@ public class StripePaymentServiceImpl implements PaymentService {
             @Value("${stripe.api.secret-key}") String secretKey,
             PaymentAccountService paymentAccountService,
             UserService userService,
+            TransactionService transactionService,
             ApplicationEventPublisher eventPublisher) {
         Stripe.apiKey = secretKey; // initialize Stripe SDK
         this.paymentAccountService = paymentAccountService;
         this.userService = userService;
+        this.transactionService = transactionService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -78,7 +87,7 @@ public class StripePaymentServiceImpl implements PaymentService {
                     .addLineItem(SessionCreateParams.LineItem.builder()
                             .setQuantity(1L)
                             .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
-                                    .setCurrency("usd")
+                                    .setCurrency(CurrencyType.USD.name().toLowerCase())
                                     .setUnitAmount(convertAmountToCent(amount))
                                     .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                             .setName(eventTitle)
@@ -102,26 +111,119 @@ public class StripePaymentServiceImpl implements PaymentService {
     @Override
     public void handleStripeWebhook(String payload, String sigHeader) {
         Event event = verifySignature(payload, sigHeader, webhookSecret);
+        handleEvent(event);
+    }
 
-        WebhookData data = extractDataFromEvent(event);
-        if (data == null) {
-            log.warn("Webhook event received without necessary data. Event Type: {}", event.getType());
+    private void handleEvent(Event event) {
+        Object stripeObject = event.getDataObjectDeserializer().getObject().orElse(null);
+
+        if (stripeObject == null) {
+            log.warn("Webhook event received with no data object. Event Type: {}", event.getType());
             return;
         }
 
-        PaymentStatus paymentStatus = getPaymentStatus(event.getType());
-        if (paymentStatus == null) {
-            log.warn("Webhook event type is not handled. Event Type: {}", event.getType());
+        switch (event.getType()) {
+            case "checkout.session.completed" -> handleCheckoutSessionCompleted((Session) stripeObject);
+            case "payment_intent.payment_failed" -> handlePaymentIntentFailed((PaymentIntent) stripeObject);
+            case "checkout.session.expired" -> handleCheckoutSessionExpired((Session) stripeObject);
+            case "payment_intent.canceled" -> handlePaymentIntentCanceled((PaymentIntent) stripeObject);
+            default -> log.info("Webhook event type not handled: {}", event.getType());
+        }
+    }
+
+    private void handleCheckoutSessionCompleted(Session session) {
+        String reservationNumber = session.getMetadata().get("reservationNumber");
+        String paymentIntentId = session.getPaymentIntent();
+        long amount = session.getAmountTotal();
+        String currency = session.getCurrency();
+
+        if (reservationNumber == null || paymentIntentId == null) {
+            log.warn("Missing metadata in checkout.session.completed event.");
             return;
         }
 
-        eventPublisher.publishEvent(new PaymentConfirmationEvent(this, data.reservationNumber(), paymentStatus, data.paymentReference()));
-        log.info("Successfully published a PaymentConfirmationEvent for reservation: {}", data.reservationNumber());
+        processTransactionAndConfirmEvent(
+                reservationNumber,
+                paymentIntentId,
+                amount,
+                currency,
+                TransactionStatus.SUCCEEDED,
+                PaymentStatus.CONFIRMED
+        );
+
+    }
+
+    private void handlePaymentIntentFailed(PaymentIntent paymentIntent) {
+        String paymentIntentId = paymentIntent.getId();
+        String reservationNumber = paymentIntent.getMetadata().get("reservationNumber");
+
+        if (reservationNumber == null) {
+            log.error("PaymentIntent {} failed, but reservation number metadata is missing.", paymentIntentId);
+            return;
+        }
+
+        Long amount = paymentIntent.getAmount();
+        String currency = paymentIntent.getCurrency();
+
+        processTransactionAndConfirmEvent(
+                reservationNumber,
+                paymentIntentId,
+                amount,
+                currency,
+                TransactionStatus.FAILED,
+                PaymentStatus.FAILED
+        );
+    }
+
+    private void handleCheckoutSessionExpired(Session session) {
+        String reservationNumber = session.getMetadata().get("reservationNumber");
+        if (reservationNumber == null) {
+            log.warn("Missing reservation number in expired checkout session.");
+            return;
+        }
+
+        processTransactionAndConfirmEvent(
+                reservationNumber,
+                null,
+                null,
+                null,
+                null,
+                PaymentStatus.CANCELED
+        );
+    }
+
+    private void handlePaymentIntentCanceled(PaymentIntent paymentIntent) {
+        String paymentIntentId = paymentIntent.getId();
+        String reservationNumber = paymentIntent.getMetadata().get("reservationNumber");
+
+        if (reservationNumber == null) {
+            log.warn("PaymentIntent {} was canceled, but the reservation number metadata is missing.", paymentIntentId);
+            return;
+        }
+
+        Long amount = paymentIntent.getAmount();
+        String currency = paymentIntent.getCurrency();
+
+        processTransactionAndConfirmEvent(
+                reservationNumber,
+                paymentIntentId,
+                amount,
+                currency,
+                TransactionStatus.CANCELED,
+                PaymentStatus.CANCELED
+        );
     }
 
     @Override
-    @Async
-    public void initiateRefund(String paymentIntentId) {
+    public void initiateRefund(UUID transactionId) {
+        Optional<Transaction> transactionOptional = transactionService.getTransactionById(transactionId);
+        if(transactionOptional.isEmpty()) {
+            log.info("No transaction found with the id: {}", transactionId);
+            return;
+        }
+
+        String paymentIntentId = transactionOptional.get().getPaymentReferenceId();
+
         RefundCreateParams params = RefundCreateParams.builder()
                 .setPaymentIntent(paymentIntentId)
                 .build();
@@ -228,43 +330,6 @@ public class StripePaymentServiceImpl implements PaymentService {
         }
     }
 
-    private WebhookData extractDataFromEvent(Event event) {
-        Optional<StripeObject> objectOptional = event.getDataObjectDeserializer().getObject();
-        if (objectOptional.isEmpty()) {
-            return null;
-        }
-
-        StripeObject stripeObject = objectOptional.get();
-
-        String reservationNumber = null;
-        String paymentReference = null;
-
-        if (stripeObject instanceof Session session) {
-            reservationNumber = session.getMetadata().get("reservationNumber");
-            paymentReference = session.getPaymentIntent();
-        } else if (stripeObject instanceof PaymentIntent paymentIntent) {
-            reservationNumber = paymentIntent.getMetadata().get("reservationNumber");
-            paymentReference = paymentIntent.getId();
-        }
-
-        if (reservationNumber == null || paymentReference == null) {
-            log.warn("Webhook event missing critical metadata. ReservationNumber or Payment Reference");
-            return null;
-        }
-
-        return new WebhookData(reservationNumber, paymentReference);
-    }
-
-    private PaymentStatus getPaymentStatus(String type) {
-        return switch (type) {
-            case "checkout.session.completed" -> PaymentStatus.CONFIRMED;
-            case "payment_intent.payment_failed" -> PaymentStatus.FAILED;
-            case "checkout.session.expired",
-                 "payment_intent.canceled" -> PaymentStatus.CANCELED;
-            default -> PaymentStatus.FAILED; // Return FAILED for unhandled events
-        };
-    }
-
     @Override
     public void handleStripeConnectAccountWebhook(String payload, String sigHeader) {
         Event event = verifySignature(payload, sigHeader, connectWebhookSecret);
@@ -298,5 +363,34 @@ public class StripePaymentServiceImpl implements PaymentService {
                 }
             }
         }
+    }
+
+    private void processTransactionAndConfirmEvent(
+            String reservationNumber,
+            String paymentIntentId,
+            Long amountTotal,
+            String currency,
+            TransactionStatus transactionStatus,
+            PaymentStatus paymentStatus) {
+
+        UUID transactionId = null;
+
+        if(Objects.nonNull(paymentIntentId)) {
+            Transaction transaction = transactionService.createTransaction(
+                    paymentIntentId,
+                    amountTotal,
+                    currency,
+                    transactionStatus
+            );
+
+            transactionId = transaction.getId();
+        }
+
+        triggerPaymentConfirmationEvent(reservationNumber, paymentStatus, transactionId);
+    }
+
+    private void triggerPaymentConfirmationEvent(String reservationNumber, PaymentStatus paymentStatus, UUID transactionId) {
+        eventPublisher.publishEvent(new PaymentConfirmationEvent(this, reservationNumber, paymentStatus, transactionId));
+        log.info("Successfully published a PaymentConfirmationEvent for reservation: {}", reservationNumber);
     }
 }

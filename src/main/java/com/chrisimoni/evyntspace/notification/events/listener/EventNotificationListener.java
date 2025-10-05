@@ -1,11 +1,11 @@
 package com.chrisimoni.evyntspace.notification.events.listener;
 
-import com.chrisimoni.evyntspace.event.events.PaymentRefundEvent;
 import com.chrisimoni.evyntspace.event.events.ReservationConfirmationEvent;
 import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.service.NotificationContentBuilder;
 import com.chrisimoni.evyntspace.notification.service.NotificationService;
+import com.chrisimoni.evyntspace.payment.events.PaymentRefundNotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -17,8 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.chrisimoni.evyntspace.notification.constant.NotificationTemplateConstants.CODE_VALIDITY_KEY;
-import static com.chrisimoni.evyntspace.notification.constant.NotificationTemplateConstants.VERIFICATION_CODE_KEY;
 import static com.chrisimoni.evyntspace.notification.util.NotificationUtil.createMapLink;
 import static com.chrisimoni.evyntspace.notification.util.NotificationUtil.generateQrCodeDataUrl;
 
@@ -31,8 +29,8 @@ public class EventNotificationListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
-    public void handlePaymentRefundEvent(PaymentRefundEvent event) {
-        log.info("PaymentRefundEvent received for {}.", event.getEmail());
+    public void handlePaymentRefundNotificationEvent(PaymentRefundNotificationEvent event) {
+        log.info("PaymentRefundNotificationEvent received for {}.", event.getEmail());
 
         Map<String, Object> templateModel = new HashMap<>();
         templateModel.put("firstName", event.getFirstName());

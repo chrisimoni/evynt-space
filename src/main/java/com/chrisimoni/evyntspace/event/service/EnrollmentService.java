@@ -7,6 +7,6 @@ import java.util.UUID;
 
 public interface EnrollmentService {
     ConfirmationDetails createReservation(UUID eventId, String firstName, String lastName, String email);
-    void updateReservationStatus(String reservationNumber, PaymentStatus status, String paymentReference);
+    void updateReservationStatus(String reservationNumber, PaymentStatus status, UUID transactionId);
     //Optional<Enrollment> findByEventIdAndUserEmail(UUID eventId, String userEmail);
 }

@@ -27,7 +27,9 @@ public class Enrollment extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
-    private String paymentReference;
+    // This is the explicit Foreign Key column (UUID) to the 'transactions' table.
+    // There is NO @OneToOne JPA annotation here to enforce separation.
+    private UUID transactionId;
 
     public Enrollment(UUID eventId, String firstName, String lastName, String email) {
         this.eventId = eventId;

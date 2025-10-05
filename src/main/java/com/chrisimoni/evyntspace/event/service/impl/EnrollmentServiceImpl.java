@@ -62,7 +62,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     @Override
     @Transactional
-    public void updateReservationStatus(String reservationNumber, PaymentStatus status, String paymentReference) {
+    public void updateReservationStatus(String reservationNumber, PaymentStatus status, UUID transactionId) {
         Optional<Enrollment> optionalEnrollment = enrollmentRepository.findByReservationNumber(reservationNumber);
         if (optionalEnrollment.isEmpty()) {
             // Log an error, this is an unexpected state
@@ -71,7 +71,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         }
 
         Enrollment enrollment = optionalEnrollment.get();
-        enrollment.setPaymentReference(paymentReference);
+        enrollment.setTransactionId(transactionId);
         
         if (PaymentStatus.CONFIRMED.equals(status)) {
             handleConfirmedPayment(enrollment);
@@ -93,9 +93,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                     enrollment.getReservationNumber());
             enrollment.setPaymentStatus(PaymentStatus.REFUNDED);
             enrollmentRepository.save(enrollment);
-            paymentService.initiateRefund(enrollment.getPaymentReference());
             eventPublisher.publishEvent(new PaymentRefundEvent(
-                    this, enrollment.getEmail(), enrollment.getFirstName(), event.getTitle(), event.getPrice()));
+                    this, enrollment.getEmail(), enrollment.getFirstName(), event.getTitle(), event.getPrice(), enrollment.getTransactionId()));
             return;
         }
 
