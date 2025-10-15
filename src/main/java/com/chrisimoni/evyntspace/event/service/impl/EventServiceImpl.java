@@ -10,7 +10,6 @@ import com.chrisimoni.evyntspace.event.model.Event;
 import com.chrisimoni.evyntspace.event.repository.EventRepository;
 import com.chrisimoni.evyntspace.event.repository.EventSpecification;
 import com.chrisimoni.evyntspace.event.service.EventService;
-import com.chrisimoni.evyntspace.payment.enums.PaymentPlatform;
 import com.chrisimoni.evyntspace.payment.model.PaymentAccount;
 import com.chrisimoni.evyntspace.payment.service.PaymentAccountService;
 import com.chrisimoni.evyntspace.user.model.User;

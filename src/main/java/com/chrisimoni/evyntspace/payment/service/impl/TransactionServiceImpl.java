@@ -1,12 +1,11 @@
 package com.chrisimoni.evyntspace.payment.service.impl;
 
-import com.chrisimoni.evyntspace.payment.enums.CurrencyType;
+import com.chrisimoni.evyntspace.common.exception.ResourceNotFoundException;
 import com.chrisimoni.evyntspace.payment.enums.TransactionStatus;
 import com.chrisimoni.evyntspace.payment.model.Transaction;
 import com.chrisimoni.evyntspace.payment.repository.TransactionRepository;
 import com.chrisimoni.evyntspace.payment.service.TransactionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,26 +17,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository repository;
-
-//    @Value("${platform-fee-percentage}")
-//    private int platformFeePercentage;
+    private final TransactionRepository transactionRepository;
 
     @Override
     @Transactional
-    public Transaction createTransaction(String paymentIntentId, long amount, String currency, TransactionStatus status) {
-        return createAndSaveTransaction(paymentIntentId, amount, currency, status);
-    }
-
-    @Override
-    public Optional<Transaction> getTransactionById(UUID transactionId) {
-        return repository.findById(transactionId);
-    }
-
-    private Transaction createAndSaveTransaction(
-            String paymentIntentId, Long amountTotal, String currency, TransactionStatus status) {
-        // Convert amount from cents/smallest unit to BigDecimal
-        BigDecimal amount = BigDecimal.valueOf(amountTotal).movePointLeft(2);
-
+    public Transaction createTransaction(String paymentIntentId, BigDecimal amount, String currency, TransactionStatus status) {
         Transaction transaction = new Transaction();
         transaction.setPaymentReferenceId(paymentIntentId);
         transaction.setAmount(amount);
@@ -45,5 +29,10 @@ public class TransactionServiceImpl implements TransactionService {
         transaction.setStatus(status);
 
         return repository.save(transaction);
+    }
+
+    @Override
+    public Optional<Transaction> getTransactionById(UUID transactionId) {
+        return repository.findById(transactionId);
     }
 }

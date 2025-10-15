@@ -1,5 +1,6 @@
 package com.chrisimoni.evyntspace.payment.service.impl;
 
+import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.ExternalServiceException;
 import com.chrisimoni.evyntspace.event.enums.PaymentStatus;
 import com.chrisimoni.evyntspace.payment.dto.StripeOnboardingResponse;
@@ -19,6 +20,7 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
 import com.stripe.model.checkout.Session;
+import com.stripe.net.RequestOptions;
 import com.stripe.net.Webhook;
 import com.stripe.param.AccountCreateParams;
 import com.stripe.param.AccountLinkCreateParams;
@@ -27,17 +29,16 @@ import com.stripe.param.checkout.SessionCreateParams;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.chrisimoni.evyntspace.payment.util.PaymentUtil.convertAmountToCent;
+import static com.chrisimoni.evyntspace.payment.util.PaymentUtil.*;
 
 @Service
 @Slf4j
@@ -56,7 +57,8 @@ public class StripePaymentServiceImpl implements PaymentService {
     @Value("${stripe.webhook.connect-secret}")
     private String connectWebhookSecret;
 
-    private record WebhookData(String reservationNumber, String paymentReference) {}
+    @Value("${platform-fee-percentage}")
+    private int platformFeePercentage;
 
     public StripePaymentServiceImpl(
             @Value("${stripe.api.secret-key}") String secretKey,
@@ -71,19 +73,100 @@ public class StripePaymentServiceImpl implements PaymentService {
         this.eventPublisher = eventPublisher;
     }
 
-    @Override
+    //INITIAL IMPL WITHOUT DIRECT CHARGE
+//    @Override
+//    public String createCheckoutSession(
+//            String reservationNumber, String customerEmail, String eventTitle, BigDecimal amount, String eventImageUrl) {
+//        try {
+//            String successUrl = baseUrl + "/checkout/success";
+//            String cancelUrl = baseUrl + "/checkout/cancel";
+//
+//            // Define the metadata needed for the Payment Intent
+//            Map<String, String> paymentIntentMetadata = Map.of(
+//                    "reservationNumber", reservationNumber
+//            );
+//
+//            SessionCreateParams params = SessionCreateParams.builder()
+//                    .setMode(SessionCreateParams.Mode.PAYMENT)
+//                    .setCustomerEmail(customerEmail)
+//                    .setSuccessUrl(successUrl)
+//                    .setCancelUrl(cancelUrl)
+//
+//                    // Keep metadata on the Checkout Session (for checkout.session.completed)
+//                    .putMetadata("reservationNumber", reservationNumber)
+//
+//                    // This block instructs Stripe to copy the metadata onto the resulting Payment Intent.
+//                    .setPaymentIntentData(
+//                            SessionCreateParams.PaymentIntentData.builder()
+//                                    .putAllMetadata(paymentIntentMetadata) // Attach metadata to the Payment Intent
+//                                    .build()
+//                    )
+//                    .addLineItem(SessionCreateParams.LineItem.builder()
+//                            .setQuantity(1L)
+//                            .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
+//                                    .setCurrency(CurrencyType.USD.name().toLowerCase())
+//                                    .setUnitAmount(convertAmountToCent(amount))
+//                                    .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
+//                                            .setName(eventTitle)
+//                                            .addImage(eventImageUrl)
+//                                            .build()
+//                                    )
+//                                    .build()
+//                            )
+//                            .build()
+//                    )
+//                    .build();
+//
+//            Session session = Session.create(params);
+//            return session.getUrl();
+//        } catch (StripeException e) {
+//            throw new ExternalServiceException("Failed to create Stripe checkout session", e);
+//        }
+//    }
+
     public String createCheckoutSession(
-            String reservationNumber, String customerEmail, String eventTitle, BigDecimal amount, String eventImageUrl) {
+            UUID userId,
+            String reservationNumber,
+            String customerEmail,
+            String eventTitle,
+            BigDecimal amount,
+            String eventImageUrl) { // Added missing parameter for clarity
         try {
+            Optional<PaymentAccount> paymentAccountOptional = paymentAccountService.findByUserId(userId);
+            if(paymentAccountOptional.isEmpty()) {
+                throw new BadRequestException("This event is currently unavailable for enrollment. " +
+                        "The organizer needs to complete their payment setup. " +
+                        "Please try again later or contact the event organizer.");
+            }
+
+            String accountId = paymentAccountOptional.get().getAccountId();
+
             String successUrl = baseUrl + "/checkout/success";
             String cancelUrl = baseUrl + "/checkout/cancel";
+
+            // Convert platform fee to the lowest currency unit (cents/pennies)
+            // Ensure you have access to platformFeePercentage here
+            Long platformFeeInCents = calculatePlatformFee(amount, platformFeePercentage);
+
+            // Define the metadata needed for the Payment Intent
+            Map<String, String> metadataMap = Map.of(
+                    "reservationNumber", reservationNumber
+            );
 
             SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setCustomerEmail(customerEmail)
                     .setSuccessUrl(successUrl)
                     .setCancelUrl(cancelUrl)
-                    .putMetadata("reservationNumber", reservationNumber)
+                    .putAllMetadata(metadataMap)
+                    .setPaymentIntentData(
+                            SessionCreateParams.PaymentIntentData.builder()
+                                    .putAllMetadata(metadataMap)
+
+                                    // Specify Platform's Application Fee
+                                    .setApplicationFeeAmount(platformFeeInCents)
+                                    .build()
+                    )
                     .addLineItem(SessionCreateParams.LineItem.builder()
                             .setQuantity(1L)
                             .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
@@ -91,7 +174,6 @@ public class StripePaymentServiceImpl implements PaymentService {
                                     .setUnitAmount(convertAmountToCent(amount))
                                     .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                             .setName(eventTitle)
-                                            //.putMetadata("reservationNumber", reservationNumber)
                                             .addImage(eventImageUrl)
                                             .build()
                                     )
@@ -101,9 +183,15 @@ public class StripePaymentServiceImpl implements PaymentService {
                     )
                     .build();
 
-            Session session = Session.create(params);
+            // CRITICAL: This header makes the charge a Direct Charge.
+            RequestOptions options = RequestOptions.builder()
+                    .setStripeAccount(accountId)
+                    .build();
+
+            Session session = Session.create(params, options);
             return session.getUrl();
         } catch (StripeException e) {
+            log.error("Failed to create Stripe checkout session -> {}", e.getMessage(), e);
             throw new ExternalServiceException("Failed to create Stripe checkout session", e);
         }
     }
@@ -123,11 +211,58 @@ public class StripePaymentServiceImpl implements PaymentService {
         }
 
         switch (event.getType()) {
+            case "account.updated" -> handleAccountUpdated((Account) stripeObject);
             case "checkout.session.completed" -> handleCheckoutSessionCompleted((Session) stripeObject);
             case "payment_intent.payment_failed" -> handlePaymentIntentFailed((PaymentIntent) stripeObject);
             case "checkout.session.expired" -> handleCheckoutSessionExpired((Session) stripeObject);
             case "payment_intent.canceled" -> handlePaymentIntentCanceled((PaymentIntent) stripeObject);
+            case "charge.refunded" -> handleChargeRefunded((Charge) stripeObject, event.getAccount());
             default -> log.info("Webhook event type not handled: {}", event.getType());
+        }
+    }
+
+    private void handleChargeRefunded(Charge charge, String accountId) {
+        String paymentIntentId = charge.getPaymentIntent();
+        String reservationNumber = charge.getMetadata().get("reservationNumber");
+
+        if (paymentIntentId == null || paymentIntentId.isEmpty()) {
+            log.warn("Charge {} on account {} refunded but is missing paymentIntent ID.",
+                    charge.getId(), accountId);
+            return;
+        }
+
+        Long amount = charge.getAmount();
+        String currency = charge.getCurrency();
+
+        processTransactionAndConfirmEvent(
+                reservationNumber,
+                paymentIntentId,
+                amount,
+                currency,
+                TransactionStatus.REFUNDED,
+                PaymentStatus.REFUNDED
+        );
+    }
+
+    private void handleAccountUpdated(Account stripeAccount) {
+        String accountId = stripeAccount.getId();
+
+        // Check for charges_enabled and payouts_enabled
+        Boolean chargesEnabled = stripeAccount.getChargesEnabled();
+        Boolean payoutsEnabled = stripeAccount.getPayoutsEnabled();
+
+        PaymentAccount paymentAccount = paymentAccountService.findByAccountId(accountId);
+
+        if (paymentAccount != null) {
+            // Update the flags based on the webhook event
+            paymentAccount.setChargesEnabled(chargesEnabled);
+            paymentAccount.setPayoutsEnabled(payoutsEnabled);
+
+            paymentAccountService.save(paymentAccount);
+            log.info("Updated PaymentAccount for ID: {} with chargesEnabled: {} and payoutsEnabled: {}",
+                    accountId, chargesEnabled, payoutsEnabled);
+        } else {
+            log.warn("Received webhook for unknown account ID: {}", accountId);
         }
     }
 
@@ -214,23 +349,72 @@ public class StripePaymentServiceImpl implements PaymentService {
         );
     }
 
+    //Refund on plaftform account, kept for reference
+//    @Override
+//    @Transactional
+//    public void initiateRefund(UUID transactionId) {
+//        Optional<Transaction> transactionOptional = transactionService.getTransactionById(transactionId);
+//        if(transactionOptional.isEmpty()) {
+//            log.info("No transaction found with the id: {}", transactionId);
+//            return;
+//        }
+//
+//        Transaction existingTransaction = transactionOptional.get();
+//
+//        String paymentIntentId = existingTransaction.getPaymentReferenceId();
+//
+//        RefundCreateParams params = RefundCreateParams.builder()
+//                .setPaymentIntent(paymentIntentId)
+//                .build();
+//
+//        try {
+//            Refund.create(params);
+//            log.info("Successfully initiated refund for Payment Intent: {}", paymentIntentId);
+//            existingTransaction.setStatus(TransactionStatus.REFUNDED);
+//            transactionService.updateTransaction(existingTransaction);
+//        } catch (StripeException e) {
+//            log.error("Error occurred while initiating refund: {}", e.getMessage(), e);
+//            throw new ExternalServiceException("Error occurred while initiating refund", e);
+//        }
+//    }
+
     @Override
-    public void initiateRefund(UUID transactionId) {
+    @Transactional
+    public void initiateRefund(UUID userId, UUID transactionId) {
         Optional<Transaction> transactionOptional = transactionService.getTransactionById(transactionId);
         if(transactionOptional.isEmpty()) {
             log.info("No transaction found with the id: {}", transactionId);
             return;
         }
 
+        Optional<PaymentAccount> paymentAccountOptional  = paymentAccountService.findByUserId(userId);
+        if(paymentAccountOptional.isEmpty()) {
+            log.error("No payment account found for user with the id: {}", userId);
+            return;
+        }
+
+        String connectedAccountId = paymentAccountOptional.get().getAccountId();
+
         String paymentIntentId = transactionOptional.get().getPaymentReferenceId();
 
-        RefundCreateParams params = RefundCreateParams.builder()
+        // Prepare Refund Parameters
+        RefundCreateParams.Builder paramsBuilder = RefundCreateParams.builder()
                 .setPaymentIntent(paymentIntentId)
+                // Optional: If you want to refund your platform fee, you must include this.
+                // NOTE: This transfers the fee back from your platform balance to the organizer's account.
+                .setRefundApplicationFee(true)
+                .setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER); // Recommended reason
+
+        // Prepare Request Options (CRITICAL for Direct Charges)
+        RequestOptions options = RequestOptions.builder()
+                .setStripeAccount(connectedAccountId) // Executes the refund against the organizer's account
                 .build();
 
         try {
-            Refund.create(params);
-            log.info("Successfully initiated refund for Payment Intent: {}", paymentIntentId);
+            Refund refund = Refund.create(paramsBuilder.build(), options);
+
+            log.info("Successfully initiated refund {} for Payment Intent: {} on Account: {}",
+                    refund.getId(), paymentIntentId, connectedAccountId);
         } catch (StripeException e) {
             log.error("Error occurred while initiating refund: {}", e.getMessage(), e);
             throw new ExternalServiceException("Error occurred while initiating refund", e);
@@ -333,42 +517,13 @@ public class StripePaymentServiceImpl implements PaymentService {
     @Override
     public void handleStripeConnectAccountWebhook(String payload, String sigHeader) {
         Event event = verifySignature(payload, sigHeader, connectWebhookSecret);
-        if ("account.updated".equals(event.getType())) {
-            Optional<StripeObject> objectOptional = event.getDataObjectDeserializer().getObject();
-            if (objectOptional.isEmpty()) {
-                return;
-            }
-
-            StripeObject stripeObject = objectOptional.get();
-            if (stripeObject instanceof Account stripeAccount) {
-                String accountId = stripeAccount.getId();
-
-                // Check for charges_enabled and payouts_enabled
-                Boolean chargesEnabled = stripeAccount.getChargesEnabled();
-                Boolean payoutsEnabled = stripeAccount.getPayoutsEnabled();
-
-                // Retrieve the corresponding PaymentAccount from your database
-                PaymentAccount paymentAccount = paymentAccountService.findByAccountId(accountId);
-
-                if (paymentAccount != null) {
-                    // Update the flags based on the webhook event
-                    paymentAccount.setChargesEnabled(chargesEnabled);
-                    paymentAccount.setPayoutsEnabled(payoutsEnabled);
-
-                    paymentAccountService.save(paymentAccount);
-                    log.info("Updated PaymentAccount for ID: {} with chargesEnabled: {} and payoutsEnabled: {}",
-                            accountId, chargesEnabled, payoutsEnabled);
-                } else {
-                    log.warn("Received webhook for unknown account ID: {}", accountId);
-                }
-            }
-        }
+        handleEvent(event);
     }
 
     private void processTransactionAndConfirmEvent(
             String reservationNumber,
             String paymentIntentId,
-            Long amountTotal,
+            Long amount,
             String currency,
             TransactionStatus transactionStatus,
             PaymentStatus paymentStatus) {
@@ -378,7 +533,7 @@ public class StripePaymentServiceImpl implements PaymentService {
         if(Objects.nonNull(paymentIntentId)) {
             Transaction transaction = transactionService.createTransaction(
                     paymentIntentId,
-                    amountTotal,
+                    convertAmountToBigDecimal(amount),
                     currency,
                     transactionStatus
             );

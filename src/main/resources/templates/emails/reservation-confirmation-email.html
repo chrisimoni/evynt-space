@@ -119,7 +119,7 @@
             </tr>
             <tr>
                 <td><strong>Fee:</strong></td>
-                <td th:text="${event.isFree} ? 'Free' : '$' + ${event.fee}">[Event Fee]</td>
+                <td th:text="${event.isPaid} ? '$' + ${event.fee}">[Event Fee] : 'Free' </td>
             </tr>
             </tbody>
         </table>

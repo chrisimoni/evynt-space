@@ -47,8 +47,8 @@ public record EventCreateRequest(
         @NotNull(message = "End date cannot be null")
         @Future(message = "End date must be in the future.")
         Instant endDate,
-        @NotNull(message = "Start date cannot be null")
-        @FutureOrPresent(message = "Start date must be in the present or future")
+        @NotNull(message = "Registration close date cannot be null")
+        @FutureOrPresent(message = "Registration close date must be in the present or future")
         Instant registrationCloseDate,
 
         @Valid

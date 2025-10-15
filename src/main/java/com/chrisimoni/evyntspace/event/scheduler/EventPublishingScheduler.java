@@ -45,4 +45,22 @@ public class EventPublishingScheduler {
             log.info("Published {} events.", eventsToPublish.size());
         }
     }
+
+    @Scheduled(fixedRate = 90000) // Fixed Rate in milliseconds (90 seconds)
+    @Transactional
+    public void archiveCompletedEvents() {
+        Pageable limit = PageRequest.of(0, BATCH_SIZE);
+
+        List<Event> eventsToArchive = eventRepository.findByEndDateBeforeAndStatusNot(
+                Instant.now(), EventStatus.ARCHIVED, limit);
+
+        if (!eventsToArchive.isEmpty()) {
+            eventsToArchive.forEach(event -> {
+                event.setStatus(EventStatus.ARCHIVED);
+            });
+
+            eventRepository.saveAll(eventsToArchive);
+            log.info("Archived {} completed events.", eventsToArchive.size());
+        }
+    }
 }

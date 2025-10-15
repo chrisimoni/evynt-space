@@ -1,8 +1,10 @@
 package com.chrisimoni.evyntspace.event.service.impl;
 
+import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
 import com.chrisimoni.evyntspace.common.exception.EventSoldOutException;
 import com.chrisimoni.evyntspace.event.dto.ConfirmationDetails;
+import com.chrisimoni.evyntspace.event.enums.EventStatus;
 import com.chrisimoni.evyntspace.event.enums.EventType;
 import com.chrisimoni.evyntspace.event.enums.PaymentStatus;
 import com.chrisimoni.evyntspace.event.events.PaymentRefundEvent;
@@ -13,6 +15,7 @@ import com.chrisimoni.evyntspace.event.model.PhysicalEventDetails;
 import com.chrisimoni.evyntspace.event.repository.EnrollmentRepository;
 import com.chrisimoni.evyntspace.event.service.EnrollmentService;
 import com.chrisimoni.evyntspace.event.service.EventService;
+import com.chrisimoni.evyntspace.event.events.PaymentRefundNotificationEvent;
 import com.chrisimoni.evyntspace.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +23,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,9 +44,18 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         validateEmailFormat(email);
         Event event = eventService.findById(eventId);
 
-        Optional<Enrollment> existingEnrollment = enrollmentRepository
-                .findByEventIdAndEmailAndPaymentStatus(event.getId(), email, PaymentStatus.CONFIRMED);
-        if (existingEnrollment.isPresent()) {
+        if(EventStatus.ARCHIVED.equals(event.getStatus())) {
+            throw new BadRequestException("The event has already concluded.");
+        }
+
+        if (event.getRegistrationCloseDate().isBefore(Instant.now())) {
+            throw new BadRequestException("Registration is closed for this event.");
+        }
+
+        Enrollment existingEnrollment = enrollmentRepository
+                .findByEventIdAndEmail(event.getId(), email)
+                .orElse(null);
+        if (existingEnrollment != null && PaymentStatus.CONFIRMED.equals(existingEnrollment.getPaymentStatus())) {
             throw new DuplicateResourceException("This email is already enrolled in this event.");
         }
 
@@ -52,8 +64,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         }
 
         // Check if the event is a paid event and handle it separately
-        if (event.getPrice() != null && event.getPrice().compareTo(BigDecimal.ZERO) > 0) {
-            return handlePaidEvent(event, firstName, lastName, email);
+        if (event.isPaid()) {
+            return handlePaidEvent(event, firstName, lastName, email, existingEnrollment);
         }
 
         // All subsequent logic is for free events
@@ -72,15 +84,29 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
         Enrollment enrollment = optionalEnrollment.get();
         enrollment.setTransactionId(transactionId);
-        
-        if (PaymentStatus.CONFIRMED.equals(status)) {
-            handleConfirmedPayment(enrollment);
-            return;
-        }
 
-        // Handle all other statuses (CANCELED, FAILED)
-        enrollment.setPaymentStatus(status);
+        switch(status) {
+            case CONFIRMED -> handleConfirmedPayment(enrollment);
+            case REFUNDED -> handlePaymentRefund(enrollment);
+            case CANCELED, FAILED -> {
+                enrollment.setPaymentStatus(status);
+                enrollmentRepository.save(enrollment);
+            }
+        }
+    }
+
+    private void handlePaymentRefund(Enrollment enrollment) {
+        enrollment.setPaymentStatus(PaymentStatus.REFUNDED);
         enrollmentRepository.save(enrollment);
+
+        Event event = eventService.findById(enrollment.getEventId());
+
+        eventPublisher.publishEvent(new PaymentRefundNotificationEvent(
+                this,
+                enrollment.getEmail(),
+                enrollment.getFirstName(),
+                event.getTitle(),
+                event.getPrice()));
     }
 
     private void handleConfirmedPayment(Enrollment enrollment) {
@@ -91,10 +117,11 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         if (updatedRows == 0) {
             log.warn("Payment succeeded but the last slot was just taken. Initiating refund for reservation: {}",
                     enrollment.getReservationNumber());
-            enrollment.setPaymentStatus(PaymentStatus.REFUNDED);
-            enrollmentRepository.save(enrollment);
+
             eventPublisher.publishEvent(new PaymentRefundEvent(
-                    this, enrollment.getEmail(), enrollment.getFirstName(), event.getTitle(), event.getPrice(), enrollment.getTransactionId()));
+                    this,
+                    event.getOrganizer().getId(),
+                    enrollment.getTransactionId()));
             return;
         }
 
@@ -111,13 +138,33 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         );
     }
 
-    private ConfirmationDetails handlePaidEvent(Event event, String firstName, String lastName, String email) {
-        Enrollment enrollment = new Enrollment(event.getId(), firstName, lastName, email);
-        enrollment.setPaymentStatus(PaymentStatus.PENDING_PAYMENT);
+    private ConfirmationDetails handlePaidEvent(
+            Event event, String firstName, String lastName, String email, Enrollment existingEnrollment) {
+
+        Enrollment enrollment;
+
+        if (existingEnrollment != null) {
+            // Reuse the existing enrollment record (for retries)
+            enrollment = existingEnrollment;
+            enrollment.setPaymentStatus(PaymentStatus.PENDING_PAYMENT); // Reset status for the new attempt
+            enrollment.setFirstName(firstName); // Update name in case it changed
+            enrollment.setLastName(lastName);
+            // Note: The reservationNumber is preserved
+            log.info("Reusing existing enrollment {} for payment retry.", enrollment.getReservationNumber());
+        } else {
+            // Create a brand new enrollment record
+            enrollment = new Enrollment(event.getId(), firstName, lastName, email);
+            enrollment.setPaymentStatus(PaymentStatus.PENDING_PAYMENT);
+        }
+
         enrollmentRepository.save(enrollment);
 
         String checkoutUrl = paymentService.createCheckoutSession(
-                enrollment.getReservationNumber(), email, event.getTitle(), event.getPrice(), event.getEventImageUrl());
+                event.getOrganizer().getId(),
+                enrollment.getReservationNumber(),
+                email, event.getTitle(),
+                event.getPrice(),
+                event.getEventImageUrl());
 
         return createConfirmationDetails(enrollment, checkoutUrl);
     }

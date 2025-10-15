@@ -5,9 +5,10 @@ import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.service.NotificationContentBuilder;
 import com.chrisimoni.evyntspace.notification.service.NotificationService;
-import com.chrisimoni.evyntspace.payment.events.PaymentRefundNotificationEvent;
+import com.chrisimoni.evyntspace.event.events.PaymentRefundNotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -27,7 +28,7 @@ public class EventNotificationListener {
     private final NotificationService notificationService;
     private final NotificationContentBuilder contentBuilder;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @EventListener
     @Async
     public void handlePaymentRefundNotificationEvent(PaymentRefundNotificationEvent event) {
         log.info("PaymentRefundNotificationEvent received for {}.", event.getEmail());
@@ -64,7 +65,7 @@ public class EventNotificationListener {
             put("title", event.getEventTitle());
             put("summary", event.getEventSummary());
             put("imageUrl", event.getEventImageUrl());
-            put("isFree", event.isPaid());
+            put("isPaid", event.isPaid());
             put("fee", event.getPrice());
             put("type", event.getEventType());
             put("venue", event.getVenueName());

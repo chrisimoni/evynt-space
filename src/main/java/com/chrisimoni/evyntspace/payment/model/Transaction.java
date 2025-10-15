@@ -28,16 +28,4 @@ public class Transaction extends BaseEntity {
     // --- Transaction Status ---
     @Enumerated(EnumType.STRING)
     private TransactionStatus status; // SUCCEEDED, FAILED, CANCELED, REFUNDED
-
-    // --- Payout Audit Fields (Populated AFTER event close) ---
-
-    // Your platform's retained fee
-    @Column(precision = 10, scale = 2)
-    private BigDecimal platformFee;
-
-    // Net amount due/paid to the organizer for this transaction's portion
-    @Column( precision = 10, scale = 2)
-    private BigDecimal organizerPayoutAmount;
-    // ID of the Stripe (or any other platform) Transfer object that moved the money
-    private String TransferId;
 }

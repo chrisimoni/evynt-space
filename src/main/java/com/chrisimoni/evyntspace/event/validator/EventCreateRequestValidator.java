@@ -97,7 +97,7 @@ public class EventCreateRequestValidator implements ConstraintValidator<ValidEve
         }
 
         // Check if startDate is before registrationCloseDate
-        if (request.startDate().isBefore(request.registrationCloseDate())) {
+        if (Objects.nonNull(request.registrationCloseDate()) && request.startDate().isBefore(request.registrationCloseDate())) {
             context.buildConstraintViolationWithTemplate("start date cannot be before registration close date")
                     .addPropertyNode("startDate")
                     .addConstraintViolation();

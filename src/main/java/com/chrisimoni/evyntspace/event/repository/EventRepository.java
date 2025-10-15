@@ -23,4 +23,5 @@ public interface EventRepository extends JpaRepository<Event, UUID>, JpaSpecific
     @Modifying
     @Query("UPDATE Event e SET e.numberOfSlots = e.numberOfSlots - 1 WHERE e.id = :eventId AND e.numberOfSlots > 0")
     int decrementSlotIfAvailable(@Param("eventId") UUID eventId);
+    List<Event> findByEndDateBeforeAndStatusNot(Instant date, EventStatus eventStatus, Pageable limit);
 }
