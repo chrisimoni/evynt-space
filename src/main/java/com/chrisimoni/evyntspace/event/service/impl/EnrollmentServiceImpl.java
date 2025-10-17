@@ -59,16 +59,11 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new DuplicateResourceException("This email is already enrolled in this event.");
         }
 
-        if (event.getNumberOfSlots() <= 0) {
-            throw new EventSoldOutException("No slots available for this event.");
-        }
-
         // Check if the event is a paid event and handle it separately
         if (event.isPaid()) {
             return handlePaidEvent(event, firstName, lastName, email, existingEnrollment);
         }
 
-        // All subsequent logic is for free events
         return handleFreeEvent(event, firstName, lastName, email);
     }
 
@@ -111,8 +106,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     private void handleConfirmedPayment(Enrollment enrollment) {
         Event event = eventService.findById(enrollment.getEventId());
-        int updatedRows = eventService.decrementSlotIfAvailable(enrollment.getEventId());
 
+        /* NO LONGER NECESSARY, JUST KEEPING FOR REFERENCE PURPOSES
+        int updatedRows = eventService.decrementSlotIfAvailable(enrollment.getEventId());
         // Handle the race condition: payment succeeded, but the slot is gone
         if (updatedRows == 0) {
             log.warn("Payment succeeded but the last slot was just taken. Initiating refund for reservation: {}",
@@ -124,6 +120,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                     enrollment.getTransactionId()));
             return;
         }
+         */
 
         // Normal successful flow: update status and send notification
         enrollment.setPaymentStatus(PaymentStatus.CONFIRMED);
@@ -142,17 +139,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             Event event, String firstName, String lastName, String email, Enrollment existingEnrollment) {
 
         Enrollment enrollment;
-
-        if (existingEnrollment != null) {
-            // Reuse the existing enrollment record (for retries)
-            enrollment = existingEnrollment;
-            enrollment.setPaymentStatus(PaymentStatus.PENDING_PAYMENT); // Reset status for the new attempt
-            enrollment.setFirstName(firstName); // Update name in case it changed
-            enrollment.setLastName(lastName);
-            // Note: The reservationNumber is preserved
-            log.info("Reusing existing enrollment {} for payment retry.", enrollment.getReservationNumber());
-        } else {
-            // Create a brand new enrollment record
+        if(existingEnrollment != null) {
+            enrollment = prepareRetryEnrollment(existingEnrollment, event, firstName, lastName);
+        }else {
+            reserveSlot(event.getId());
             enrollment = new Enrollment(event.getId(), firstName, lastName, email);
             enrollment.setPaymentStatus(PaymentStatus.PENDING_PAYMENT);
         }
@@ -169,13 +159,19 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         return createConfirmationDetails(enrollment, checkoutUrl);
     }
 
-    private ConfirmationDetails handleFreeEvent(Event event, String firstName, String lastName, String email) {
-        // Atomically decrement the slot for free events immediately
-        int updatedSlots = eventService.decrementSlotIfAvailable(event.getId());
-        if (updatedSlots == 0) {
-            throw new EventSoldOutException("No slots available for this event.");
+    private Enrollment prepareRetryEnrollment(Enrollment enrollment, Event event, String firstName, String lastName) {
+        if (PaymentStatus.EXPIRED.equals(enrollment.getPaymentStatus())) {
+            reserveSlot(event.getId());
         }
+        enrollment.setPaymentStatus(PaymentStatus.PENDING_PAYMENT);
+        enrollment.setFirstName(firstName);
+        enrollment.setLastName(lastName);
+        log.info("Reusing existing enrollment {} for payment retry.", enrollment.getReservationNumber());
+        return enrollment;
+    }
 
+    private ConfirmationDetails handleFreeEvent(Event event, String firstName, String lastName, String email) {
+        reserveSlot(event.getId());
         Enrollment enrollment = new Enrollment(event.getId(), firstName, lastName, email);
         enrollment.setPaymentStatus(PaymentStatus.CONFIRMED);
         enrollmentRepository.save(enrollment);
@@ -183,6 +179,15 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         triggerConfirmationNotificationEvent(enrollment.getReservationNumber(), email, firstName, lastName, event);
 
         return createConfirmationDetails(enrollment, null);
+    }
+
+    private void reserveSlot(UUID eventId) {
+        // Atomically decrement the slot for events immediately
+        int updatedSlots = eventService.decrementSlotIfAvailable(eventId);
+
+        if (updatedSlots == 0) {
+            throw new EventSoldOutException("No slots available for this event.");
+        }
     }
 
     private void triggerConfirmationNotificationEvent(String reservationNumber, String email, String firstName, String lastName,

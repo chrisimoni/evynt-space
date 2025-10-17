@@ -93,6 +93,7 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
     }
 
     @Override
+    @Transactional
     public Event updateEvent(Event eventToUpdate, Event previousEvent) {
         if(!Objects.equals(eventToUpdate.getTitle(), previousEvent.getTitle())) {
             validateTitle(eventToUpdate.getTitle());
@@ -133,6 +134,7 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
     }
 
     @Override
+    @Transactional
     public int decrementSlotIfAvailable(UUID eventId) {
         return repository.decrementSlotIfAvailable(eventId);
     }
