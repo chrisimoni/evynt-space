@@ -1,6 +1,5 @@
 package com.chrisimoni.evyntspace.payment.service.impl;
 
-import com.chrisimoni.evyntspace.common.exception.ResourceNotFoundException;
 import com.chrisimoni.evyntspace.payment.enums.TransactionStatus;
 import com.chrisimoni.evyntspace.payment.model.Transaction;
 import com.chrisimoni.evyntspace.payment.repository.TransactionRepository;
@@ -21,12 +20,14 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
-    public Transaction createTransaction(String paymentIntentId, BigDecimal amount, String currency, TransactionStatus status) {
+    public Transaction createTransaction(
+            String paymentIntentId, BigDecimal amount, String currency, TransactionStatus status, String accountId) {
         Transaction transaction = new Transaction();
         transaction.setPaymentReferenceId(paymentIntentId);
         transaction.setAmount(amount);
         transaction.setCurrency(currency.toUpperCase());
         transaction.setStatus(status);
+        transaction.setAccountId(accountId);
 
         return repository.save(transaction);
     }

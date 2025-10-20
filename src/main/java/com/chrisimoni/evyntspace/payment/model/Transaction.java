@@ -28,4 +28,6 @@ public class Transaction extends BaseEntity {
     // --- Transaction Status ---
     @Enumerated(EnumType.STRING)
     private TransactionStatus status; // SUCCEEDED, FAILED, CANCELED, REFUNDED
+
+    private String accountId;
 }

@@ -210,13 +210,15 @@ public class StripePaymentServiceImpl implements PaymentService {
             return;
         }
 
+        String connectedAccountId = event.getAccount();
+
         switch (event.getType()) {
             case "account.updated" -> handleAccountUpdated((Account) stripeObject);
-            case "checkout.session.completed" -> handleCheckoutSessionCompleted((Session) stripeObject);
-            case "payment_intent.payment_failed" -> handlePaymentIntentFailed((PaymentIntent) stripeObject);
+            case "checkout.session.completed" -> handleCheckoutSessionCompleted((Session) stripeObject, connectedAccountId);
+            case "payment_intent.payment_failed" -> handlePaymentIntentFailed((PaymentIntent) stripeObject, connectedAccountId);
             case "checkout.session.expired" -> handleCheckoutSessionExpired((Session) stripeObject);
-            case "payment_intent.canceled" -> handlePaymentIntentCanceled((PaymentIntent) stripeObject);
-            case "charge.refunded" -> handleChargeRefunded((Charge) stripeObject, event.getAccount());
+            case "payment_intent.canceled" -> handlePaymentIntentCanceled((PaymentIntent) stripeObject, connectedAccountId);
+            case "charge.refunded" -> handleChargeRefunded((Charge) stripeObject, connectedAccountId);
             default -> log.info("Webhook event type not handled: {}", event.getType());
         }
     }
@@ -240,7 +242,8 @@ public class StripePaymentServiceImpl implements PaymentService {
                 amount,
                 currency,
                 TransactionStatus.REFUNDED,
-                PaymentStatus.REFUNDED
+                PaymentStatus.REFUNDED,
+                accountId
         );
     }
 
@@ -266,7 +269,7 @@ public class StripePaymentServiceImpl implements PaymentService {
         }
     }
 
-    private void handleCheckoutSessionCompleted(Session session) {
+    private void handleCheckoutSessionCompleted(Session session, String accountId) {
         String reservationNumber = session.getMetadata().get("reservationNumber");
         String paymentIntentId = session.getPaymentIntent();
         long amount = session.getAmountTotal();
@@ -283,12 +286,13 @@ public class StripePaymentServiceImpl implements PaymentService {
                 amount,
                 currency,
                 TransactionStatus.SUCCEEDED,
-                PaymentStatus.CONFIRMED
+                PaymentStatus.CONFIRMED,
+                accountId
         );
 
     }
 
-    private void handlePaymentIntentFailed(PaymentIntent paymentIntent) {
+    private void handlePaymentIntentFailed(PaymentIntent paymentIntent, String accountId) {
         String paymentIntentId = paymentIntent.getId();
         String reservationNumber = paymentIntent.getMetadata().get("reservationNumber");
 
@@ -306,7 +310,8 @@ public class StripePaymentServiceImpl implements PaymentService {
                 amount,
                 currency,
                 TransactionStatus.FAILED,
-                PaymentStatus.FAILED
+                PaymentStatus.FAILED,
+                accountId
         );
     }
 
@@ -323,11 +328,12 @@ public class StripePaymentServiceImpl implements PaymentService {
                 null,
                 null,
                 null,
-                PaymentStatus.CANCELED
+                PaymentStatus.CANCELED,
+                null
         );
     }
 
-    private void handlePaymentIntentCanceled(PaymentIntent paymentIntent) {
+    private void handlePaymentIntentCanceled(PaymentIntent paymentIntent, String accountId) {
         String paymentIntentId = paymentIntent.getId();
         String reservationNumber = paymentIntent.getMetadata().get("reservationNumber");
 
@@ -345,7 +351,8 @@ public class StripePaymentServiceImpl implements PaymentService {
                 amount,
                 currency,
                 TransactionStatus.CANCELED,
-                PaymentStatus.CANCELED
+                PaymentStatus.CANCELED,
+                accountId
         );
     }
 
@@ -526,7 +533,8 @@ public class StripePaymentServiceImpl implements PaymentService {
             Long amount,
             String currency,
             TransactionStatus transactionStatus,
-            PaymentStatus paymentStatus) {
+            PaymentStatus paymentStatus,
+            String accountId) {
 
         UUID transactionId = null;
 
@@ -535,7 +543,8 @@ public class StripePaymentServiceImpl implements PaymentService {
                     paymentIntentId,
                     convertAmountToBigDecimal(amount),
                     currency,
-                    transactionStatus
+                    transactionStatus,
+                    accountId
             );
 
             transactionId = transaction.getId();

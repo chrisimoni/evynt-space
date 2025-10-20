@@ -8,6 +8,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TransactionService {
-    Transaction createTransaction(String paymentIntentId, BigDecimal amount, String currency, TransactionStatus status);
+    Transaction createTransaction(String paymentIntentId, BigDecimal amount, String currency, TransactionStatus status, String accountId);
     Optional<Transaction> getTransactionById(UUID transactionId);
 }
