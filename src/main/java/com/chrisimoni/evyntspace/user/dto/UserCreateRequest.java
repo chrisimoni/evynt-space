@@ -12,7 +12,6 @@ public record UserCreateRequest(
         UUID verificationToken,
         @NotBlank(message = "Email cannot be empty")
         @Email(message = "Email must be a valid email address")
-        @Size(max = 100, message = "Email cannot exceed 100 characters")
         String email,
         @NotBlank(message = "First name cannot be empty")
         @Size(min = 2, max = 20, message = "First name must be between 2 and 50 characters")

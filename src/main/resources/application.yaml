@@ -81,3 +81,15 @@ stripe:
     connect-secret: ${STRIPE_CONNECT_WEBHOOK_SECRET}
 
 platform-fee-percentage: ${PLATFORM_FEE_PERCENTAGE:10}
+
+app:
+  frontend:
+    url: ${APP_FRONTEND_END}
+
+auth:
+  code-validity: ${CODE_VALIDITY_MINUTES}
+  session-validity: ${SESSION_VALIDITY_MINUTES}
+  secret: ${JWT_SECRET}
+  access-token-validity: ${ACCESS_TOKEN_VALIDITY_MINUTES}
+  refresh-token-validity: ${REFRESH_TOKEN_VALIDITY_MINUTES}
+  password-reset-token-validity: ${PASSWORD_RESET_TOKEN_VALIDITY_MINUTES}

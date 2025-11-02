@@ -2,7 +2,6 @@ package com.chrisimoni.evyntspace.user.controller;
 
 import com.chrisimoni.evyntspace.user.dto.*;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
-import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.service.UserService;
 import com.chrisimoni.evyntspace.user.service.AuthService;
@@ -24,7 +23,7 @@ public class AuthController {
 
     @PostMapping("/request-verification-code")
     public ApiResponse<Void> requestVerificationCode(
-            @Valid @RequestBody VerificationRequest request) {
+            @Valid @RequestBody EmailRequest request) {
         authService.requestVerificationCode(request.email());
         return ApiResponse.success("Verification code sent. Please check your email.");
     }
@@ -41,16 +40,30 @@ public class AuthController {
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<UserResponse> signup(@Valid @RequestBody UserCreateRequest request) {
-        User user = authService.signup(userMapper.toModel(request), request.verificationToken());
-        return ApiResponse.success("User created.", userMapper.toResponseDto(user));
+    public ApiResponse<AuthResponse> signup(@Valid @RequestBody UserCreateRequest request) {
+        AuthResponse response = authService.signup(userMapper.toModel(request), request.verificationToken());
+        return ApiResponse.success("User created.", response);
     }
 
-    //TODO: login
+    @PostMapping("/login")
+    public ApiResponse<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
+        AuthResponse response = authService.login(request);
+        return ApiResponse.success(response);
+    }
 
-    //TODO: refresh-token
+    @PostMapping("/refresh-token")
+    public ApiResponse<AuthResponse> refreshToken(@Valid @RequestBody TokenRequest request) {
+        AuthResponse response = authService.refreshToken(request);
+        return ApiResponse.success(response);
+    }
 
-    //TODO: reset-password
+    @PostMapping("/forgot-password")
+    public ApiResponse<AuthResponse> forgotPassword(@Valid @RequestBody EmailRequest request) {
+        authService.resetPasswordToken(request);
+        return ApiResponse.success("Please check your email for password reset link.");
+    }
+
+    //TODO: reset password
 
     //TODO: change-password
 }

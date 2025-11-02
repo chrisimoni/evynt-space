@@ -12,6 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -19,7 +22,7 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements UserService {
+public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements UserService, UserDetailsService {
     private static final String RESOURCE_NAME = "User";
     private final UserRepository repository;
 
@@ -40,7 +43,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
 
     @Override
     public void validateEmailIsUnique(String email) {
-        Optional<User> existingUser = getUserByEmail(email);
+        Optional<User> existingUser = repository.findByEmail(email);
         if (existingUser.isPresent()) {
             throw new DuplicateResourceException(
                     "This email is already registered. Please login or reset your password.");
@@ -55,7 +58,14 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
         return super.findAll(spec, pageable);
     }
 
-    private Optional<User> getUserByEmail(String email) {
-        return repository.findByEmail(email);
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        return getUserByEmail(email);
+    }
+
+    @Override
+    public User getUserByEmail(String email) {
+        return repository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
 }

@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -145,6 +147,26 @@ public class GlobalExceptionHandler {
                 errors);
     }
 
+    @ExceptionHandler(UsernameNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorApiResponse handleUserNotFound(UsernameNotFoundException ex) {
+        return ErrorApiResponse.create(HttpStatus.NOT_FOUND.name(), ex.getMessage());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorApiResponse handleBadCredentialsException(BadCredentialsException ex) {
+        // HTTP Status 401 (Unauthorized) is the standard for bad username/password.
+        // It's also acceptable to use 403 Forbidden to not reveal if the username exists.
+        return ErrorApiResponse.create(HttpStatus.UNAUTHORIZED.name(), "Invalid username or password.");
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public  ErrorApiResponse handleInvalidTokenException(InvalidTokenException ex) {
+        return ErrorApiResponse.create(HttpStatus.UNAUTHORIZED.name(), ex.getMessage());
+    }
+
     // Catch-all for any other unexpected exceptions -> 500 Internal Server Error
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -154,4 +176,5 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.name(),
                 "An unexpected error occurred. Please try again later.");
     }
+
 }

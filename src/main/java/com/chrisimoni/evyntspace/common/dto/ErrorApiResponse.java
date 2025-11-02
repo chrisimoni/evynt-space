@@ -12,23 +12,20 @@ import java.util.List;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL) // Still useful to omit null 'errors' list if not present
 public class ErrorApiResponse {
-    private String status;
+    private String error; // e.g., "BAD_REQUEST", "NOT_FOUND", "INTERNAL_SERVER_ERROR"
     private String message;
-    private String code; // e.g., "BAD_REQUEST", "NOT_FOUND", "INTERNAL_SERVER_ERROR"
     private List<ApiErrorDetail> errors; // For validation errors
 
     public static ErrorApiResponse create(String code, String message) {
         return ErrorApiResponse.builder()
-                .status("error")
-                .code(code)
+                .error(code)
                 .message(message)
                 .build();
     }
 
     public static ErrorApiResponse create(String code, String message, List<ApiErrorDetail> errors) {
         return ErrorApiResponse.builder()
-                .status("error")
-                .code(code)
+                .error(code)
                 .message(message)
                 .errors(errors)
                 .build();

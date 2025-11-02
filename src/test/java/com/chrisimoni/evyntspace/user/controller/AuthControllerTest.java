@@ -3,7 +3,7 @@ package com.chrisimoni.evyntspace.user.controller;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.user.dto.UserCreateRequest;
 import com.chrisimoni.evyntspace.user.dto.VerificationConfirmRequest;
-import com.chrisimoni.evyntspace.user.dto.VerificationRequest;
+import com.chrisimoni.evyntspace.user.dto.EmailRequest;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.service.UserService;
@@ -50,7 +50,7 @@ public class AuthControllerTest {
     @DisplayName("Should successfully request verification code")
     void testRequestVerificationCode_shouldPass() throws Exception {
         // Arrange
-        VerificationRequest request = new VerificationRequest("test@example.com");
+        EmailRequest request = new EmailRequest("test@example.com");
         String requestJson = new ObjectMapper().writeValueAsString(request);
 
         // Define mock behavior for the service call
@@ -73,7 +73,7 @@ public class AuthControllerTest {
     @DisplayName("Should return 400 when request is invalid")
     void testRequestVerificationCode_shouldReturnBadRequestOnInvalidInput() throws Exception {
         // Arrange
-        VerificationRequest request = new VerificationRequest("invalid-email");
+        EmailRequest request = new EmailRequest("invalid-email");
         String requestJson = new ObjectMapper().writeValueAsString(request);
 
         // Act & Assert
