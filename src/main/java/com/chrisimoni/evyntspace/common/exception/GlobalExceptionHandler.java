@@ -156,15 +156,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ErrorApiResponse handleBadCredentialsException(BadCredentialsException ex) {
-        // HTTP Status 401 (Unauthorized) is the standard for bad username/password.
+        // HTTP Status 401 (Unauthorized) is the standard for bad username/newPassword.
         // It's also acceptable to use 403 Forbidden to not reveal if the username exists.
-        return ErrorApiResponse.create(HttpStatus.UNAUTHORIZED.name(), "Invalid username or password.");
+        return ErrorApiResponse.create(HttpStatus.UNAUTHORIZED.name(), "Invalid username or newPassword.");
     }
 
     @ExceptionHandler(InvalidTokenException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public  ErrorApiResponse handleInvalidTokenException(InvalidTokenException ex) {
         return ErrorApiResponse.create(HttpStatus.UNAUTHORIZED.name(), ex.getMessage());
+    }
+
+    // 403 Forbidden - User is authenticated but account is disabled
+    @ExceptionHandler(UserDisabledException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorApiResponse handleUserDisabled(UserDisabledException ex) {
+        return ErrorApiResponse.create(HttpStatus.FORBIDDEN.name(), ex.getMessage());
     }
 
     // Catch-all for any other unexpected exceptions -> 500 Internal Server Error

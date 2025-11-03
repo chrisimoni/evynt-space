@@ -46,7 +46,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
         Optional<User> existingUser = repository.findByEmail(email);
         if (existingUser.isPresent()) {
             throw new DuplicateResourceException(
-                    "This email is already registered. Please login or reset your password.");
+                    "This email is already registered. Please login or reset your newPassword.");
         }
     }
 

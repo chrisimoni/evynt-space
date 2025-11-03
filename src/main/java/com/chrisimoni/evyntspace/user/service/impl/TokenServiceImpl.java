@@ -7,9 +7,9 @@ import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.repository.TokenRepository;
 import com.chrisimoni.evyntspace.user.service.TokenService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -24,8 +24,45 @@ public class TokenServiceImpl implements TokenService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public String createRefreshToken(User user, int validityInMinutes) {
+        // Delete old refresh tokens for this user
+        repository.deleteByUserAndTokenType(user, TokenType.REFRESH_TOKEN);
         return createToken(user, TokenType.REFRESH_TOKEN, validityInMinutes);
+    }
+
+    @Override
+    @Transactional
+    public String createPasswordResetToken(User user, int validityInMinutes) {
+        // Delete old newPassword reset tokens for this user
+        repository.deleteByUserAndTokenType(user, TokenType.PASSWORD_RESET_TOKEN);
+        return createToken(user, TokenType.PASSWORD_RESET_TOKEN, validityInMinutes);
+    }
+
+    @Transactional
+    public void deleteToken(Token token) {
+        repository.delete(token);
+    }
+
+    @Transactional
+    public void deleteToken(String plainToken) {
+        repository.delete(findByToken(plainToken));
+    }
+
+    @Override
+    @Transactional
+    public Token verifyToken(String plainToken) {
+        Token token = findByToken(plainToken);
+
+        if (token.isExpired()) {
+            // Clean up expired token
+            repository.delete(token);
+            throw new InvalidTokenException(
+                    String.format("%s has expired", token.getTokenType())
+            );
+        }
+
+        return token;
     }
 
     private String createToken(User user, TokenType tokenType, int validityInMinutes) {
@@ -46,39 +83,11 @@ public class TokenServiceImpl implements TokenService {
         return plainToken;
     }
 
-    @Override
-    public Token verifyToken(String token) {
-        Token tokenObj = findByToken(token);
-
-        if (tokenObj.isExpired()) {
-            repository.delete(tokenObj);
-            throw new InvalidTokenException(
-                    String.format("%s has expired.", tokenObj.getTokenType()));
-        }
-
-        if (tokenObj.isRevoked()) {
-            throw new InvalidTokenException(
-                    String.format("%s was revoked. Please log in again", tokenObj.getTokenType())
-            );
-        }
-
-        return tokenObj;
-    }
-
-    @Override
-    public String createPasswordResetToken(User user, int validityInMinutes) {
-        return createToken(user, TokenType.PASSWORD_RESET_TOKEN, validityInMinutes);
-    }
-
-    public void revokeToken(String token) {
-        Token tokenObj = findByToken(token);
-        tokenObj.setRevoked(true);
-        repository.save(tokenObj);
-    }
-
-    private Token findByToken(String token) {
-        String hashedToken = hash(token);;
+    private Token findByToken(String plainToken) {
+        String hashedToken = hash(plainToken);
         return repository.findByToken(hashedToken)
-                .orElseThrow(() -> new InvalidTokenException("The provided token is not found."));
+                .orElseThrow(() -> new InvalidTokenException(
+                        "Invalid or expired token"
+                ));
     }
 }

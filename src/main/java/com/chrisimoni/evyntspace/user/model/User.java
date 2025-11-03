@@ -65,8 +65,8 @@ public class User extends ActivatableEntity implements UserDetails {
 
     @Override
     public boolean isCredentialsNonExpired() {
-        // Indicates if the user's password or other credentials have expired.
-        // Returns true (credentials never expire) unless a password rotation policy is enforced.
+        // Indicates if the user's newPassword or other credentials have expired.
+        // Returns true (credentials never expire) unless a newPassword rotation policy is enforced.
         return true;
     }
 

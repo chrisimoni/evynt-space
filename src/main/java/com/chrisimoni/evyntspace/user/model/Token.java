@@ -22,15 +22,20 @@ public class Token extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private TokenType tokenType;
     private Instant expiryDate;
-    private boolean used; //This is useless, remove
+    //TODO: remove used and revoked flags
+    private boolean used;
     private boolean revoked;
 
     public boolean isExpired() {
         return Instant.now().isAfter(this.expiryDate);
     }
 
-    public boolean isValid() {
-        return !isExpired() && !this.revoked;
+    public boolean isPasswordResetToken() {
+        return tokenType == TokenType.PASSWORD_RESET_TOKEN;
+    }
+
+    public boolean isRefreshToken() {
+        return tokenType == TokenType.REFRESH_TOKEN;
     }
 
 }

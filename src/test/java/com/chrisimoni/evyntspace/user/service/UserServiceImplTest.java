@@ -84,7 +84,7 @@ public class UserServiceImplTest {
         });
 
         assertEquals(
-                "This email is already registered. Please login or reset your password.",
+                "This email is already registered. Please login or reset your newPassword.",
                 thrown.getMessage());
 
         // Verify that getUserByEmail (via userRepository) was called

@@ -2,23 +2,24 @@ package com.chrisimoni.evyntspace.user.controller;
 
 import com.chrisimoni.evyntspace.user.dto.*;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
+import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
-import com.chrisimoni.evyntspace.user.service.UserService;
 import com.chrisimoni.evyntspace.user.service.AuthService;
 import com.chrisimoni.evyntspace.common.dto.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    //Todo: create authservice
-    //private final AuthService authService
     private final AuthService authService;
-    private final UserService userService;
     private final UserMapper userMapper;
 
     @PostMapping("/request-verification-code")
@@ -53,17 +54,33 @@ public class AuthController {
 
     @PostMapping("/refresh-token")
     public ApiResponse<AuthResponse> refreshToken(@Valid @RequestBody TokenRequest request) {
-        AuthResponse response = authService.refreshToken(request);
+        AuthResponse response = authService.refreshToken(request.token());
         return ApiResponse.success(response);
     }
 
     @PostMapping("/forgot-password")
-    public ApiResponse<AuthResponse> forgotPassword(@Valid @RequestBody EmailRequest request) {
-        authService.resetPasswordToken(request);
-        return ApiResponse.success("Please check your email for password reset link.");
+    public ApiResponse<Void> forgotPassword(@Valid @RequestBody EmailRequest request) {
+        authService.requestPasswordReset(request.email());
+        return ApiResponse.success("Please check your email for newPassword reset link.");
     }
 
-    //TODO: reset password
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+        authService.resetPassword(request.token(), request.newPassword());
+        return ApiResponse.success("Password successfully reset.");
+    }
 
-    //TODO: change-password
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@Valid @RequestBody TokenRequest request) {
+        authService.logout(request.token());
+        return ApiResponse.success("Logged out successfully.");
+    }
+
+    @PutMapping("/change-password")
+    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+                                                 Authentication authentication) {
+        UUID userId = ((User) authentication.getPrincipal()).getId();
+        authService.changePassword(userId, request);
+        return ApiResponse.success("Password updated successfully.");
+    }
 }

@@ -2,10 +2,9 @@ package com.chrisimoni.evyntspace.user.service.impl;
 
 import com.chrisimoni.evyntspace.common.events.PasswordResetNotificationEvent;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
-import com.chrisimoni.evyntspace.user.dto.AuthRequest;
-import com.chrisimoni.evyntspace.user.dto.AuthResponse;
-import com.chrisimoni.evyntspace.user.dto.EmailRequest;
-import com.chrisimoni.evyntspace.user.dto.TokenRequest;
+import com.chrisimoni.evyntspace.common.exception.InvalidTokenException;
+import com.chrisimoni.evyntspace.common.exception.UserDisabledException;
+import com.chrisimoni.evyntspace.user.dto.*;
 import com.chrisimoni.evyntspace.user.enums.Role;
 import com.chrisimoni.evyntspace.user.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.user.model.Token;
@@ -23,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -46,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final VerificationSessionRepository sessionRepository;
     private final UserService userService;
     private final ApplicationEventPublisher eventPublisher;
-    private final PasswordEncoder encoder;
+    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager;
@@ -128,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
         validate(model);
         verifyEmailSession(model.getEmail(), verficationToken);
         model.setCountryCode(model.getCountryCode().toUpperCase());
-        model.setPassword(encoder.encode(model.getPassword()));
+        model.setPassword(passwordEncoder.encode(model.getPassword()));
         model.setRole(Role.USER);
 
         User user = userService.createUser(model);
@@ -138,6 +138,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(AuthRequest request) {
+        User user = userService.getUserByEmail(request.email());
+        checkUserIsActive(user);
+
         // Authenticate user credentials using Spring Security's mechanism
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -150,25 +153,82 @@ public class AuthServiceImpl implements AuthService {
             throw new UsernameNotFoundException("Invalid credentials");
         }
 
-        User user = userService.getUserByEmail(request.email());
-
         return authResponse(user);
     }
 
     @Override
-    public AuthResponse refreshToken(TokenRequest request) {
-        Token token = tokenService.verifyToken(request.token());
-        return authResponse(token.getUser());
+    @Transactional
+    public AuthResponse refreshToken(String refreshTokenString) {
+        Token refreshToken = tokenService.verifyToken(refreshTokenString);
+        if (!refreshToken.isRefreshToken()) {
+            throw new InvalidTokenException("Not a refresh token");
+        }
+
+        User user = refreshToken.getUser();
+        checkUserIsActive(user);
+
+        return authResponse(user);
+    }
+
+    private void checkUserIsActive(User user) {
+        if (!user.isEnabled()) {
+            throw new UserDisabledException("User account is disabled");
+        }
     }
 
     @Override
-    public void resetPasswordToken(EmailRequest request) {
-        User user = userService.getUserByEmail(request.email());
+    public void requestPasswordReset(String email) {
+        User user = userService.getUserByEmail(email);
         String plainToken = tokenService.createPasswordResetToken(user, refreshTokenValidity);
-        String resetUrl = frontendBaseUrl + "/reset-password?token=" + plainToken;
+        String resetUrl = frontendBaseUrl + "/reset-newPassword?token=" + plainToken;
 
         eventPublisher.publishEvent(new PasswordResetNotificationEvent(
-                this, request.email(), resetUrl, passwordResetTokenValidity));
+                this, email, resetUrl, passwordResetTokenValidity));
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String tokenString, String newPassword) {
+        Token token = tokenService.verifyToken(tokenString);
+        if (!token.isPasswordResetToken()) {
+            throw new InvalidTokenException("Not a newPassword reset token");
+        }
+
+        // Update newPassword
+        User user = token.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userService.save(user);
+
+        // Delete token immediately after use
+        tokenService.deleteToken(token);
+
+        log.info("Password reset successful for user: {}", user.getEmail());
+
+    }
+
+    // Logout - delete refresh token
+    @Transactional
+    public void logout(String refreshTokenString) {
+        // Delete refresh token
+        tokenService.deleteToken(refreshTokenString);
+    }
+
+    @Override
+    public void changePassword(UUID userId, ChangePasswordRequest request) {
+        User user = userService.findById(userId);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Current password is not correct.");
+        }
+
+        // Optional: Prevent reuse of the same password
+        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+            throw new BadCredentialsException("New password cannot be the same as the current password.");
+        }
+
+        String newHashedPassword = passwordEncoder.encode(request.newPassword());
+        user.setPassword(newHashedPassword);
+        userService.save(user);
     }
 
     public String generateAndSaveCode(String email) {

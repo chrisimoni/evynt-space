@@ -27,7 +27,7 @@ spring:
     enabled: true
     # url: jdbc:postgresql://localhost:5432/evyntspace
     # user: postgres
-    # password: postgres
+    # newPassword: postgres
     # Default location, uncomment and change if your scripts are elsewhere
     # locations: classpath:/db/migration
     # Change the name of the Flyway schema history table (default: flyway_schema_history)

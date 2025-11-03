@@ -106,7 +106,7 @@ public class AuthServiceImplTest {
         String existingEmail = "existing@example.com";
 
         doThrow(new DuplicateResourceException("This email is already registered. " +
-                "Please login or reset your password."))
+                "Please login or reset your newPassword."))
                 .when(userService).validateEmailIsUnique(existingEmail);
 
         // Verify that calling the method throws the expected exception

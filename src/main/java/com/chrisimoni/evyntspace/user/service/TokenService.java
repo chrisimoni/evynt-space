@@ -8,4 +8,6 @@ public interface TokenService {
     String createRefreshToken(User user, int validityInMinutes);
     Token verifyToken(String token);
     String createPasswordResetToken(User user, int validityInMinutes);
+    void deleteToken(Token token);
+    void deleteToken(String plainToken);
 }
