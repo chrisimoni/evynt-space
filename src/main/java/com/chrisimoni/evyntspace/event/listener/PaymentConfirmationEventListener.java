@@ -1,7 +1,7 @@
-package com.chrisimoni.evyntspace.event.events.listener;
+package com.chrisimoni.evyntspace.event.listener;
 
 import com.chrisimoni.evyntspace.event.service.EnrollmentService;
-import com.chrisimoni.evyntspace.payment.events.PaymentConfirmationEvent;
+import com.chrisimoni.evyntspace.common.events.PaymentConfirmationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

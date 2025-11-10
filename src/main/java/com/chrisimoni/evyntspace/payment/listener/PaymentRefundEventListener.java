@@ -1,6 +1,6 @@
-package com.chrisimoni.evyntspace.payment.events.listener;
+package com.chrisimoni.evyntspace.payment.listener;
 
-import com.chrisimoni.evyntspace.event.events.PaymentRefundEvent;
+import com.chrisimoni.evyntspace.common.events.PaymentRefundEvent;
 import com.chrisimoni.evyntspace.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

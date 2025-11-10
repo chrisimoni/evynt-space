@@ -1,15 +1,13 @@
 package com.chrisimoni.evyntspace.user.controller;
 
+import com.chrisimoni.evyntspace.common.dto.ApiResponse;
 import com.chrisimoni.evyntspace.user.dto.*;
-import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.service.AuthService;
-import com.chrisimoni.evyntspace.common.dto.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +18,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
-    private final UserMapper userMapper;
 
     @PostMapping("/request-verification-code")
     public ApiResponse<Void> requestVerificationCode(
@@ -42,7 +39,7 @@ public class AuthController {
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<AuthResponse> signup(@Valid @RequestBody UserCreateRequest request) {
-        AuthResponse response = authService.signup(userMapper.toModel(request), request.verificationToken());
+        AuthResponse response = authService.signup(request);
         return ApiResponse.success("User created.", response);
     }
 
@@ -61,7 +58,7 @@ public class AuthController {
 
     @PostMapping("/verify-login-code")
     public ApiResponse<AuthResponse> verifyLoginCode(@Valid @RequestBody VerifyCodeRequest request) {
-        AuthResponse response = authService.verifyAndGenerateToken(request);
+        AuthResponse response = authService.verifyAndGenerateToken(request.email(), request.code());
         return ApiResponse.success(response);
     }
 

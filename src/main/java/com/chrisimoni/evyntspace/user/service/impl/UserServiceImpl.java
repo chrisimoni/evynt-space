@@ -1,8 +1,12 @@
 package com.chrisimoni.evyntspace.user.service.impl;
 
+import com.chrisimoni.evyntspace.common.dto.PageResponse;
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
 import com.chrisimoni.evyntspace.common.service.BaseServiceImpl;
+import com.chrisimoni.evyntspace.user.dto.UserResponse;
 import com.chrisimoni.evyntspace.user.dto.UserSearchCriteria;
+import com.chrisimoni.evyntspace.user.dto.UserUpdateRequest;
+import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.repository.UserRepository;
 import com.chrisimoni.evyntspace.user.repository.UserSpecification;
@@ -25,13 +29,15 @@ import java.util.UUID;
 public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements UserService, UserDetailsService {
     private static final String RESOURCE_NAME = "User";
     private final UserRepository repository;
+    private final UserMapper mapper;
 
     @Value("${cloudinary.default-user-img}")
     private String defaultImage;
 
-    public UserServiceImpl(UserRepository repository) {
+    public UserServiceImpl(UserRepository repository, UserMapper mapper) {
         super(repository, RESOURCE_NAME);
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     @Override
@@ -51,16 +57,32 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
     }
 
     @Override
-    public Page<User> findAllUsers(UserSearchCriteria criteria) {
+    public PageResponse<UserResponse> getUsers(UserSearchCriteria criteria) {
         UserSpecification spec = new UserSpecification(criteria);
         Pageable pageable = criteria.toPageable();
 
-        return super.findAll(spec, pageable);
+        Page<User> users = super.findAll(spec, pageable);
+        return mapper.toPageResponse(users);
+    }
+
+    @Override
+    public UserResponse getUser(UUID uuid) {
+        User user = super.findById(uuid);
+        return mapper.toResponseDto(user);
     }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         return getUserByEmail(email);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateUser(UUID id, UserUpdateRequest request) {
+        User user = mapper.updateUserFromDto(request, findById(id));
+        super.save(user);
+
+        return mapper.toResponseDto(user);
     }
 
     @Override

@@ -8,6 +8,7 @@ import com.chrisimoni.evyntspace.common.exception.UserDisabledException;
 import com.chrisimoni.evyntspace.user.dto.*;
 import com.chrisimoni.evyntspace.user.enums.Role;
 import com.chrisimoni.evyntspace.common.events.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.Token;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerificationCode;
@@ -51,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager;
+    private final UserMapper userMapper;
 
     @Value("${auth.code-validity}")
     int codeValidity;
@@ -125,14 +127,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponse signup(User model, UUID verficationToken) {
-        validate(model);
-        verifyEmailSession(model.getEmail(), verficationToken);
-        model.setCountryCode(model.getCountryCode().toUpperCase());
-        model.setPassword(passwordEncoder.encode(model.getPassword()));
-        model.setRole(Role.USER);
+    public AuthResponse signup(UserCreateRequest request) {
+        validate(request);
+        verifyEmailSession(request.email(), request.verificationToken());
 
-        User user = userService.createUser(model);
+        User user = userMapper.toEnity(request);
+        user.setCountryCode(user.getCountryCode().toUpperCase());
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setRole(Role.USER);
+
+        user = userService.createUser(user);
 
         return authResponse(user);
     }
@@ -247,17 +251,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthResponse verifyAndGenerateToken(VerifyCodeRequest request) {
-        User user = userService.getUserByEmail(request.email());
+    public AuthResponse verifyAndGenerateToken(String email, String code) {
+        User user = userService.getUserByEmail(email);
 
-        Token loginToken = tokenService.verifyToken(request.code());
+        Token loginToken = tokenService.verifyToken(code);
         if (!loginToken.isLoginToken()) {
             throw new InvalidTokenException("Not a login token");
         }
 
-        String email = loginToken.getUser().getEmail();
+        String tokenEmail = loginToken.getUser().getEmail();
 
-        if(!email.equalsIgnoreCase(request.email())) {
+        if(!tokenEmail.equalsIgnoreCase(email)) {
             throw new BadRequestException("Mismatched email during token validation.");
         }
 
@@ -278,11 +282,11 @@ public class AuthServiceImpl implements AuthService {
         return String.valueOf((int)(Math.random() * 900000) + 100000);
     }
 
-    protected void validate(User model) {
-        validateEmailFormat(model.getEmail());
-        userService.validateEmailIsUnique(model.getEmail());
-        validatePassword(model.getPassword());
-        validateCountryCode(model.getCountryCode());
+    protected void validate(UserCreateRequest request) {
+        validateEmailFormat(request.email());
+        userService.validateEmailIsUnique(request.email());
+        validatePassword(request.password());
+        validateCountryCode(request.countryCode());
     }
 
     private AuthResponse authResponse(User user) {

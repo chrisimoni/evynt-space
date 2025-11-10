@@ -14,7 +14,7 @@ import org.springframework.data.domain.Page;
 @Mapper(componentModel = "spring", // Makes it a Spring component (singleton)
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE) // Important for updates!
 public interface UserMapper {
-    User toModel(UserCreateRequest dto);
+    User toEnity(UserCreateRequest dto);
     UserResponse toResponseDto(User user);
 
     User updateUserFromDto(UserUpdateRequest request, @MappingTarget User userToUpdate);

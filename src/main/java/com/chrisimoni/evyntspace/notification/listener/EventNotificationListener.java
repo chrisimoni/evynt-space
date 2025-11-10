@@ -1,11 +1,11 @@
-package com.chrisimoni.evyntspace.notification.events.listener;
+package com.chrisimoni.evyntspace.notification.listener;
 
-import com.chrisimoni.evyntspace.event.events.ReservationConfirmationEvent;
+import com.chrisimoni.evyntspace.common.events.ReservationConfirmationEvent;
 import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.service.NotificationContentBuilder;
 import com.chrisimoni.evyntspace.notification.service.NotificationService;
-import com.chrisimoni.evyntspace.event.events.PaymentRefundNotificationEvent;
+import com.chrisimoni.evyntspace.common.events.PaymentRefundNotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

@@ -1,9 +1,11 @@
 package com.chrisimoni.evyntspace.common.util;
 
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,11 +29,13 @@ public class ValidationUtil {
     }
 
     public static void validatePassword(String password) {
-        Pattern PASSWORD_PATTERN = Pattern.compile(PASSWORD_REGEX);
-        Matcher matcher = PASSWORD_PATTERN.matcher(password);
-        if(!matcher.matches()) {
-            throw new BadRequestException("Password must include at least one uppercase letter," +
-                    " one lowercase letter, one number, and one special character.");
+        if(Objects.nonNull(password)) {
+            Pattern PASSWORD_PATTERN = Pattern.compile(PASSWORD_REGEX);
+            Matcher matcher = PASSWORD_PATTERN.matcher(password);
+            if (!matcher.matches()) {
+                throw new BadRequestException("Password must include at least one uppercase letter," +
+                        " one lowercase letter, one number, and one special character.");
+            }
         }
     }
 

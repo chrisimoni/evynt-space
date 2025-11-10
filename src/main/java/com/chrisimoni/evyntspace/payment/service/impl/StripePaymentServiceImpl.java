@@ -7,7 +7,7 @@ import com.chrisimoni.evyntspace.payment.dto.StripeOnboardingResponse;
 import com.chrisimoni.evyntspace.payment.enums.CurrencyType;
 import com.chrisimoni.evyntspace.payment.enums.PaymentPlatform;
 import com.chrisimoni.evyntspace.payment.enums.TransactionStatus;
-import com.chrisimoni.evyntspace.payment.events.PaymentConfirmationEvent;
+import com.chrisimoni.evyntspace.common.events.PaymentConfirmationEvent;
 import com.chrisimoni.evyntspace.payment.model.PaymentAccount;
 import com.chrisimoni.evyntspace.payment.model.Transaction;
 import com.chrisimoni.evyntspace.payment.service.PaymentAccountService;

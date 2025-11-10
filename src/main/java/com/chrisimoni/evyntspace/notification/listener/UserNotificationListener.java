@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.notification.events.listener;
+package com.chrisimoni.evyntspace.notification.listener;
 
 import com.chrisimoni.evyntspace.common.events.LoginCodeNotificationEvent;
 import com.chrisimoni.evyntspace.common.events.PasswordResetNotificationEvent;

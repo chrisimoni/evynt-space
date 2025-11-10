@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.payment.events;
+package com.chrisimoni.evyntspace.common.events;
 
 import com.chrisimoni.evyntspace.event.enums.PaymentStatus;
 import lombok.Getter;
