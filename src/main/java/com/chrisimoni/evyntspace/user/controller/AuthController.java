@@ -30,9 +30,9 @@ public class AuthController {
     }
 
     @PostMapping("/verify-code")
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.CREATED) //TODO: verify this status and rework slightly
     public ApiResponse<VerificationResponse> verifyCode(
-            @Valid @RequestBody VerificationConfirmRequest request) {
+            @Valid @RequestBody VerifyCodeRequest request) {
         VerifiedSession session = authService.confirmVerificationCode(
                 request.email(), request.code());
         VerificationResponse response = new VerificationResponse(session.getId(), session.getExpirationTime());
@@ -49,6 +49,19 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         AuthResponse response = authService.login(request);
+        return ApiResponse.success(response);
+    }
+
+    @PostMapping("/request-login-code")
+    public ApiResponse<Void> requestLoginCode(
+            @Valid @RequestBody EmailRequest request) {
+        authService.requestLoginCode(request.email());
+        return ApiResponse.success("Login code sent. Please check your email.");
+    }
+
+    @PostMapping("/verify-login-code")
+    public ApiResponse<AuthResponse> verifyLoginCode(@Valid @RequestBody VerifyCodeRequest request) {
+        AuthResponse response = authService.verifyAndGenerateToken(request);
         return ApiResponse.success(response);
     }
 

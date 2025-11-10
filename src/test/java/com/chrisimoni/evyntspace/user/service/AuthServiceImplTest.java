@@ -2,7 +2,7 @@ package com.chrisimoni.evyntspace.user.service;
 
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
-import com.chrisimoni.evyntspace.user.events.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.common.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.user.model.VerificationCode;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import com.chrisimoni.evyntspace.user.repository.VerificationCodeRepository;

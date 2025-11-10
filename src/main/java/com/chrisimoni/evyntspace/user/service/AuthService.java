@@ -1,12 +1,10 @@
 package com.chrisimoni.evyntspace.user.service;
 
-import com.chrisimoni.evyntspace.user.dto.AuthRequest;
-import com.chrisimoni.evyntspace.user.dto.AuthResponse;
-import com.chrisimoni.evyntspace.user.dto.ChangePasswordRequest;
-import com.chrisimoni.evyntspace.user.dto.PasswordResetRequest;
+import com.chrisimoni.evyntspace.user.dto.*;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.UUID;
@@ -22,4 +20,6 @@ public interface AuthService {
     void resetPassword(String tokenString, String newPassword);
     void logout(String token);
     void changePassword(UUID userId, ChangePasswordRequest request);
+    void requestLoginCode(String email);
+    AuthResponse verifyAndGenerateToken(@Valid VerifyCodeRequest request);
 }

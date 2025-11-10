@@ -7,6 +7,7 @@ public record AuthRequest(
         @NotBlank(message = "Email cannot be empty")
         @Email(message = "Email must be a valid email address")
         String email,
+        @NotBlank(message = "Password cannot be empty")
         String password
 ) {
 }

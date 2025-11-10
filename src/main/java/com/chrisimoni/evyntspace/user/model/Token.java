@@ -38,4 +38,8 @@ public class Token extends BaseEntity {
         return tokenType == TokenType.REFRESH_TOKEN;
     }
 
+    public boolean isLoginToken() {
+        return tokenType == TokenType.LOGIN_TOKEN;
+    }
+
 }

@@ -39,6 +39,13 @@ public class TokenServiceImpl implements TokenService {
         return createToken(user, TokenType.PASSWORD_RESET_TOKEN, validityInMinutes);
     }
 
+    @Override
+    @Transactional
+    public String createLoginToken(User user, int validityInMinutes) {
+        repository.deleteByUserAndTokenType(user, TokenType.LOGIN_TOKEN);
+        return createToken(user, TokenType.LOGIN_TOKEN, validityInMinutes);
+    }
+
     @Transactional
     public void deleteToken(Token token) {
         repository.delete(token);
@@ -66,7 +73,7 @@ public class TokenServiceImpl implements TokenService {
     }
 
     private String createToken(User user, TokenType tokenType, int validityInMinutes) {
-        String plainToken = generateToken();
+        String plainToken = TokenType.LOGIN_TOKEN.equals(tokenType) ? generateCode() : generateToken();
         String hashedToken = hash(plainToken);
 
         Instant expiry = Instant.now().plus(validityInMinutes, ChronoUnit.MINUTES);
@@ -81,6 +88,11 @@ public class TokenServiceImpl implements TokenService {
         repository.save(token);
 
         return plainToken;
+    }
+
+    //TODO: refactor later
+    private String generateCode() {
+        return String.valueOf((int)(Math.random() * 900000) + 100000);
     }
 
     private Token findByToken(String plainToken) {

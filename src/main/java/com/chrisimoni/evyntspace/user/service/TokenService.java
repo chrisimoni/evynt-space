@@ -10,4 +10,5 @@ public interface TokenService {
     String createPasswordResetToken(User user, int validityInMinutes);
     void deleteToken(Token token);
     void deleteToken(String plainToken);
+    String createLoginToken(User user, int codeValidity);
 }

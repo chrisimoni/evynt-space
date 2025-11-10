@@ -19,7 +19,6 @@ public record UserCreateRequest(
         @NotBlank(message = "Last name cannot be empty")
         @Size(min = 2, max = 20, message = "Last name must be between 2 and 50 characters")
         String lastName,
-        @NotBlank(message = "Password cannot be empty")
         @Size(min = 8, message = "Password must be at least 8 characters long")
         String password,
         String company,

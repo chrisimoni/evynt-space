@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One-Time Login Code</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<div style="max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+
+    <h3 style="color: #0056b3;">Here's your one-time code</h3>
+
+    <p>Someone requested a one-time code to log in to your account with this email address. Please use the following code to continue:</p>
+
+    <p style="font-size: 24px; font-weight: bold; color: #d9534f; text-align: center; background-color: #f9f9f9; padding: 15px; border-radius: 5px; letter-spacing: 5px;">
+        <span th:text="${verificationCode}">[Login Code]</span>
+    </p>
+
+    <p>For your security, this code can only be used once, and it expires after <span th:text="${codeValidity}">15</span> minutes.</p>
+
+    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+    <h4 style="color: #0056b3;">Why did I get this email?</h4>
+    <p>A login attempt was initiated on your account. **If this wasn't you, ignore this email.** Your account remains secure unless the code is used.</p>
+
+    <p>Best regards,<br>The Evyntspace Management Team</p>
+</div>
+</body>
+</html>

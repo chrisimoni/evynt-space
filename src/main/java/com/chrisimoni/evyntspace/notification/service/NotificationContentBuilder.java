@@ -42,6 +42,7 @@ public class NotificationContentBuilder {
             case VERIFICATION_NOTIFICATION -> "Verify Your Account - " + model.get(VERIFICATION_CODE_KEY);
             case PASSWORD_RESET_NOTIFICATION -> "Password Reset Request";
             case PAYMENT_REFUND_NOTIFICATION -> "Your Refund for " + model.get("eventTitle");
+            case LOGIN_CODE_NOTIFICATION -> "Your Login Code - " + model.get(VERIFICATION_CODE_KEY);
             case RESERVATION_CONFIRMATION_NOTIFICATION ->  {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> eventModel = (Map<String, Object>) model.get("event");

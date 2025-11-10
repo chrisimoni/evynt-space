@@ -1,12 +1,13 @@
 package com.chrisimoni.evyntspace.user.service.impl;
 
+import com.chrisimoni.evyntspace.common.events.LoginCodeNotificationEvent;
 import com.chrisimoni.evyntspace.common.events.PasswordResetNotificationEvent;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.InvalidTokenException;
 import com.chrisimoni.evyntspace.common.exception.UserDisabledException;
 import com.chrisimoni.evyntspace.user.dto.*;
 import com.chrisimoni.evyntspace.user.enums.Role;
-import com.chrisimoni.evyntspace.user.events.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.common.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.user.model.Token;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.model.VerificationCode;
@@ -231,14 +232,50 @@ public class AuthServiceImpl implements AuthService {
         userService.save(user);
     }
 
+    @Override
+    @Transactional
+    public void requestLoginCode(String email) {
+        validateEmailFormat(email);
+        User user = userService.getUserByEmail(email);
+        checkUserIsActive(user);
+
+        String plainCode = tokenService.createLoginToken(user, codeValidity);
+
+        eventPublisher.publishEvent(new LoginCodeNotificationEvent(
+                this, email, plainCode, codeValidity));
+
+    }
+
+    @Override
+    public AuthResponse verifyAndGenerateToken(VerifyCodeRequest request) {
+        User user = userService.getUserByEmail(request.email());
+
+        Token loginToken = tokenService.verifyToken(request.code());
+        if (!loginToken.isLoginToken()) {
+            throw new InvalidTokenException("Not a login token");
+        }
+
+        String email = loginToken.getUser().getEmail();
+
+        if(!email.equalsIgnoreCase(request.email())) {
+            throw new BadRequestException("Mismatched email during token validation.");
+        }
+
+        return authResponse(user);
+    }
+
     public String generateAndSaveCode(String email) {
         //generate 6-digit code
-        String plainCode = String.valueOf((int)(Math.random() * 900000) + 100000);
+        String plainCode = generateCode();
         Instant expirationTime = Instant.now().plus(codeValidity, ChronoUnit.MINUTES);
         VerificationCode verificationCode = new VerificationCode(email, hash(plainCode), expirationTime);
         verificationCodeRepository.save(verificationCode);
 
         return plainCode;
+    }
+
+    private String generateCode() {
+        return String.valueOf((int)(Math.random() * 900000) + 100000);
     }
 
     protected void validate(User model) {

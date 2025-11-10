@@ -2,7 +2,7 @@ package com.chrisimoni.evyntspace.user.controller;
 
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.user.dto.UserCreateRequest;
-import com.chrisimoni.evyntspace.user.dto.VerificationConfirmRequest;
+import com.chrisimoni.evyntspace.user.dto.VerifyCodeRequest;
 import com.chrisimoni.evyntspace.user.dto.EmailRequest;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.VerifiedSession;
@@ -95,7 +95,7 @@ public class AuthControllerTest {
         // Arrange
         String testEmail = "verify@example.com";
         String testCode = "123456";
-        VerificationConfirmRequest request = new VerificationConfirmRequest(testEmail, testCode);
+        VerifyCodeRequest request = new VerifyCodeRequest(testEmail, testCode);
         String requestJson = objectMapper.writeValueAsString(request);
 
         UUID sessionId = UUID.randomUUID();
@@ -132,7 +132,7 @@ public class AuthControllerTest {
         // Arrange
         String testEmail = "test@example.com";
         String testCode = "wrongcode";
-        VerificationConfirmRequest request = new VerificationConfirmRequest(testEmail, testCode);
+        VerifyCodeRequest request = new VerifyCodeRequest(testEmail, testCode);
         String requestJson = objectMapper.writeValueAsString(request);
 
         String errorMessage = "Verification failed: Invalid code.";

@@ -1,7 +1,8 @@
 package com.chrisimoni.evyntspace.notification.events.listener;
 
+import com.chrisimoni.evyntspace.common.events.LoginCodeNotificationEvent;
 import com.chrisimoni.evyntspace.common.events.PasswordResetNotificationEvent;
-import com.chrisimoni.evyntspace.user.events.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.common.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.enums.MessageTemplate;
 import com.chrisimoni.evyntspace.notification.service.NotificationContentBuilder;
@@ -30,26 +31,58 @@ public class UserNotificationListener {
     @Async
     public void handleVerificationCodeRequestedEvent(VerificationCodeRequestedEvent event) {
         log.info("VerificationCodeRequestedEvent received for {}.", event.getRecipient());
-        Map<String, Object> templateModel = new HashMap<>();
-        templateModel.put(RECIPIENT, event.getRecipient());
-        templateModel.put(VERIFICATION_CODE_KEY, event.getVerificationCode());
-        templateModel.put(CODE_VALIDITY_KEY, event.getCodeValidityInMinutes());
-        MessageDetails messageDetails = contentBuilder.createMessageDetails(
-                event.getRecipient(), MessageTemplate.VERIFICATION_NOTIFICATION, templateModel);
 
-        notificationService.send(messageDetails);
+        sendVerificationCodeNotification(
+                event.getRecipient(),
+                event.getVerificationCode(),
+                event.getCodeValidityInMinutes(),
+                MessageTemplate.VERIFICATION_NOTIFICATION
+        );
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void handleLoginCodeNotificationEvent(LoginCodeNotificationEvent event) {
+        log.info("handleLoginCodeNotificationEvent received for {}.", event.getRecipient());
+
+        sendVerificationCodeNotification(
+                event.getRecipient(),
+                event.getVerificationCode(),
+                event.getCodeValidityInMinutes(),
+                MessageTemplate.LOGIN_CODE_NOTIFICATION
+        );
     }
 
     @EventListener
     @Async
     public void handlePasswordResetNotificationEvent(PasswordResetNotificationEvent event) {
         log.info("PasswordResetNotificationEvent received for {}.", event.getRecipient());
-        Map<String, Object> templateModel = new HashMap<>();
-        templateModel.put(RESET_URL_KEY, event.getLink());
-        templateModel.put(RESET_VALIDITY_KEY, event.getValidity());
-        MessageDetails messageDetails = contentBuilder.createMessageDetails(
-                event.getRecipient(), MessageTemplate.PASSWORD_RESET_NOTIFICATION, templateModel);
 
+        Map<String, Object> templateModel = Map.of(
+                RESET_URL_KEY, event.getLink(),
+                CODE_VALIDITY_KEY, event.getValidity()
+        );
+
+        sendNotification(event.getRecipient(), MessageTemplate.PASSWORD_RESET_NOTIFICATION, templateModel);
+    }
+
+    private void sendVerificationCodeNotification(
+            String recipient,
+            String verificationCode,
+            int codeValidityInMinutes,
+            MessageTemplate template) {
+
+        Map<String, Object> templateModel = Map.of(
+                RECIPIENT, recipient,
+                VERIFICATION_CODE_KEY, verificationCode,
+                CODE_VALIDITY_KEY, codeValidityInMinutes
+        );
+
+        sendNotification(recipient, template, templateModel);
+    }
+
+    private void sendNotification(String recipient, MessageTemplate template, Map<String, Object> templateModel) {
+        MessageDetails messageDetails = contentBuilder.createMessageDetails(recipient, template, templateModel);
         notificationService.send(messageDetails);
     }
 }
