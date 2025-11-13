@@ -1,7 +1,8 @@
 package com.chrisimoni.evyntspace.user.model;
 
 import com.chrisimoni.evyntspace.common.model.ActivatableEntity;
-import com.chrisimoni.evyntspace.user.enums.Role;
+import com.chrisimoni.evyntspace.common.model.SecurityPrincipal;
+import com.chrisimoni.evyntspace.common.enums.Role;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -14,9 +15,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -24,7 +25,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "users")
-public class User extends ActivatableEntity implements UserDetails {
+public class User extends ActivatableEntity implements UserDetails, SecurityPrincipal {
     private String firstName;
     private String lastName;
     private String email;
@@ -76,5 +77,10 @@ public class User extends ActivatableEntity implements UserDetails {
         // This is typically linked to a status flag in your database.
         // ActivatableEntity provides an 'isActive' field. Links Spring Security's active check to your entity's status.
         return this.isActive();
+    }
+
+    @Override
+    public UUID getUserId() {
+        return this.getId();
     }
 }

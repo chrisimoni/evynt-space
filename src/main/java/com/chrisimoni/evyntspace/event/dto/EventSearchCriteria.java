@@ -13,5 +13,5 @@ public class EventSearchCriteria extends CommonPaginationAndSortCriteria {
         private String title;
         private EventStatus status;
         private String country;
-        private UUID organizerId;
+        private UUID organizerId; //Just for admin
 }

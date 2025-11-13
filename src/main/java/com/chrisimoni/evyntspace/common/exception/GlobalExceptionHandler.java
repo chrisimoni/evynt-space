@@ -8,7 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -172,6 +174,23 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorApiResponse handleUserDisabled(UserDisabledException ex) {
         return ErrorApiResponse.create(HttpStatus.FORBIDDEN.name(), ex.getMessage());
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorApiResponse handleAuthorizationDenied(AuthorizationDeniedException ex) {
+        return ErrorApiResponse.create(
+                HttpStatus.FORBIDDEN.name(),
+                "You don't have permission to access this resource");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorApiResponse handleAccessDenied(AccessDeniedException ex) {
+
+        return ErrorApiResponse.create(
+                HttpStatus.FORBIDDEN.name(),
+                "Access denied: " + ex.getMessage());
     }
 
     // Catch-all for any other unexpected exceptions -> 500 Internal Server Error

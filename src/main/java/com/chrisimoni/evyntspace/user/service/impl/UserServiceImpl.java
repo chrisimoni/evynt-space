@@ -1,11 +1,13 @@
 package com.chrisimoni.evyntspace.user.service.impl;
 
+import com.chrisimoni.evyntspace.common.config.AuthenticationContext;
 import com.chrisimoni.evyntspace.common.dto.PageResponse;
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
 import com.chrisimoni.evyntspace.common.service.BaseServiceImpl;
 import com.chrisimoni.evyntspace.user.dto.UserResponse;
 import com.chrisimoni.evyntspace.user.dto.UserSearchCriteria;
 import com.chrisimoni.evyntspace.user.dto.UserUpdateRequest;
+import com.chrisimoni.evyntspace.common.enums.Role;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.repository.UserRepository;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,14 +32,16 @@ import java.util.UUID;
 public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements UserService, UserDetailsService {
     private static final String RESOURCE_NAME = "User";
     private final UserRepository repository;
+    private final AuthenticationContext authenticationContext;
     private final UserMapper mapper;
 
     @Value("${cloudinary.default-user-img}")
     private String defaultImage;
 
-    public UserServiceImpl(UserRepository repository, UserMapper mapper) {
+    public UserServiceImpl(UserRepository repository, AuthenticationContext authenticationContext, UserMapper mapper) {
         super(repository, RESOURCE_NAME);
         this.repository = repository;
+        this.authenticationContext = authenticationContext;
         this.mapper = mapper;
     }
 
@@ -66,8 +71,11 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
     }
 
     @Override
-    public UserResponse getUser(UUID uuid) {
-        User user = super.findById(uuid);
+    @Transactional
+    public UserResponse getUser(UUID id) {
+        User user = findById(id);
+        authenticationContext.validateUserAccess(id);
+
         return mapper.toResponseDto(user);
     }
 
@@ -79,10 +87,11 @@ public class UserServiceImpl extends BaseServiceImpl<User, UUID> implements User
     @Override
     @Transactional
     public UserResponse updateUser(UUID id, UserUpdateRequest request) {
-        User user = mapper.updateUserFromDto(request, findById(id));
-        super.save(user);
+        User user = findById(id);
+        authenticationContext.validateUserAccess(id);
+        user = mapper.updateUserFromDto(request, user);
 
-        return mapper.toResponseDto(user);
+        return mapper.toResponseDto(super.save(user));
     }
 
     @Override

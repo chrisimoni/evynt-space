@@ -13,6 +13,7 @@ public record EventPublicResponse(
         String title,
         String summary,
         String description,
+        String slug,
         EventType eventType,
         PhysicalEventDetails physicalEventDetails,
         BigDecimal price,

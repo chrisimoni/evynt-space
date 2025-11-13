@@ -1,5 +1,6 @@
 package com.chrisimoni.evyntspace.common.config;
 
+import com.chrisimoni.evyntspace.common.exception.AuthExceptionHandler;
 import com.chrisimoni.evyntspace.common.exception.InvalidTokenException;
 import com.chrisimoni.evyntspace.user.service.JwtService;
 import com.chrisimoni.evyntspace.user.service.UserService;
@@ -12,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;

@@ -1,11 +1,16 @@
 package com.chrisimoni.evyntspace.event.service.impl;
 
+import com.chrisimoni.evyntspace.common.config.AuthenticationContext;
+import com.chrisimoni.evyntspace.common.dto.PageResponse;
+import com.chrisimoni.evyntspace.common.enums.Role;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.DuplicateResourceException;
 import com.chrisimoni.evyntspace.common.exception.ResourceNotFoundException;
 import com.chrisimoni.evyntspace.common.service.BaseServiceImpl;
-import com.chrisimoni.evyntspace.event.dto.EventSearchCriteria;
+import com.chrisimoni.evyntspace.event.dto.*;
+import com.chrisimoni.evyntspace.event.dto.EventPublicResponse;
 import com.chrisimoni.evyntspace.event.enums.EventStatus;
+import com.chrisimoni.evyntspace.event.mapper.EventMapper;
 import com.chrisimoni.evyntspace.event.model.Event;
 import com.chrisimoni.evyntspace.event.repository.EventRepository;
 import com.chrisimoni.evyntspace.event.repository.EventSpecification;
@@ -36,6 +41,8 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
     private final EventRepository repository;
     private final UserService userService;
     private final PaymentAccountService paymentAccountService;
+    private final AuthenticationContext authenticationContext;
+    private final EventMapper mapper;
 
     @Value("${cloudinary.default-event-img}")
     private String defaultEventImage;
@@ -44,23 +51,27 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
     private String defaultUserImage;
 
     public EventServiceImpl(
-            EventRepository repository, UserService userService, PaymentAccountService paymentAccountService) {
+            EventRepository repository, UserService userService, PaymentAccountService paymentAccountService, AuthenticationContext authenticationContext, EventMapper mapper) {
         super(repository, RESOURCE_NAME);
         this.repository = repository;
         this.userService = userService;
         this.paymentAccountService = paymentAccountService;
+        this.authenticationContext = authenticationContext;
+        this.mapper = mapper;
     }
 
     @Override
     @Transactional
-    public Event createEvent(Event event, UUID userId) {
-        validateTitle(event.getTitle());
+    public EventResponse createEvent(EventCreateRequest request) {
+        validateTitle(request.title());
+        User organizer = userService.findById(request.organizerId());
+        authenticationContext.validateUserAccess(request.organizerId());
 
-        User organizer = userService.findById(userId);
-
-        if(event.isPaid()) {
+        if(request.isPaid()) {
             validateOrganizerPaymentStatus(organizer.getId());
         }
+
+        Event event = mapper.toEntity(request);
 
         event.setOrganizer(organizer);
         event.setPrice(event.isPaid() ? event.getPrice() : BigDecimal.ZERO);
@@ -73,10 +84,12 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
             event.setPublishedDate(null);
         }
 
-        return super.save(event);
+        event = super.save(event);
+
+        return mapper.toResponseDto(event);
     }
 
-    public void validateOrganizerPaymentStatus(UUID userId) {
+    private void validateOrganizerPaymentStatus(UUID userId) {
         Optional<PaymentAccount> account = paymentAccountService.findByUserId(userId);
         if (account.isEmpty()) {
             throw new BadRequestException(
@@ -94,7 +107,10 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
 
     @Override
     @Transactional
-    public Event updateEvent(Event eventToUpdate, Event previousEvent) {
+    public EventResponse updateEvent(UUID id, EventUpdateRequest request) {
+        Event previousEvent = findById(id);
+        authenticationContext.validateUserAccess(previousEvent.getOrganizer().getId());
+        Event eventToUpdate = mapper.updateEventFromDto(request, previousEvent);
         if(!Objects.equals(eventToUpdate.getTitle(), previousEvent.getTitle())) {
             validateTitle(eventToUpdate.getTitle());
             eventToUpdate.setSlug(generateSlug(eventToUpdate.getTitle()));
@@ -103,24 +119,51 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
         validateEventDates(eventToUpdate.getStartDate(), eventToUpdate.getEndDate());
         processAgendas(eventToUpdate);
 
-        // Check if the start or end date has changed
-        boolean sendNotification = !Objects.equals(eventToUpdate.getStartDate(), previousEvent.getStartDate()) ||
-                !Objects.equals(eventToUpdate.getEndDate(), previousEvent.getEndDate());
+        //OPTIONAL: check if the start or end date has changed and trigger notification to enrolled users
 
         super.save(eventToUpdate);
 
-        //TODO: if sendNotification, trigger notifcation to update enrolled users of event date changes
-
-        return eventToUpdate;
+        return mapper.toResponseDto(eventToUpdate);
     }
 
     @Override
-    public Page<Event> findAllEvents(EventSearchCriteria criteria, boolean forPublic) {
-        if(forPublic) {
-            criteria.setStatus(EventStatus.PUBLISHED);
-            criteria.setActive(true);
+    public EventPublicResponse getEventBySlug(String slug) {
+        Event event = repository.findBySlugAndStatusAndActiveTrue(slug, EventStatus.PUBLISHED)
+                .orElseThrow(() -> new ResourceNotFoundException("No event found"));
+
+        return mapper.toPublicResponseDto(event);
+    }
+
+    @Override
+    public PageResponse<EventResponse> getEvents(EventSearchCriteria criteria) {
+        boolean isAdmin = authenticationContext.hasRole(Role.ADMIN.name());
+        if(!isAdmin) {
+            UUID currentUserId = authenticationContext.getCurrentUserId();
+            criteria.setOrganizerId(currentUserId);
         }
 
+        Page<Event> events = findAllEvents(criteria);
+        return mapper.toPageResponse(events);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<EventPublicResponse> getPublicEvents(EventSearchCriteria criteria) {
+        criteria.setStatus(EventStatus.PUBLISHED);
+        criteria.setActive(true);
+        Page<Event> events = findAllEvents(criteria);
+        return mapper.toPagePublicResponse(events);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EventResponse getEvent(UUID id) {
+        Event event = findById(id);
+        authenticationContext.validateUserAccess(event.getOrganizer().getId());
+        return mapper.toResponseDto(event);
+    }
+
+    private Page<Event> findAllEvents(EventSearchCriteria criteria) {
         EventSpecification spec = new EventSpecification(criteria);
         Pageable pageable = criteria.toPageable();
 
@@ -128,9 +171,11 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
     }
 
     @Override
-    public Event findBySlug(String slug) {
-        return repository.findBySlugAndStatusAndActiveTrue(slug, EventStatus.PUBLISHED)
-                .orElseThrow(() -> new ResourceNotFoundException("No event found"));
+    @Transactional(readOnly = true)
+    public void deleteEvent(UUID eventId) {
+        Event event = findById(eventId);
+        authenticationContext.validateUserAccess(event.getOrganizer().getId());
+        updateStatus(eventId, false);
     }
 
     @Override

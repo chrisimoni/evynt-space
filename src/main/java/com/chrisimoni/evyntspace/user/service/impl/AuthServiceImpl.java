@@ -6,7 +6,7 @@ import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.InvalidTokenException;
 import com.chrisimoni.evyntspace.common.exception.UserDisabledException;
 import com.chrisimoni.evyntspace.user.dto.*;
-import com.chrisimoni.evyntspace.user.enums.Role;
+import com.chrisimoni.evyntspace.common.enums.Role;
 import com.chrisimoni.evyntspace.common.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.Token;

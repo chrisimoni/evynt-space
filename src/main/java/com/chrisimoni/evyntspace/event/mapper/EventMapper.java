@@ -17,7 +17,7 @@ import org.springframework.data.domain.Page;
 public interface EventMapper {
     @Mapping(target = "organizer", ignore = true)
     @Mapping(target = "paid", source = "isPaid", defaultValue = "false")
-    Event toModel(EventCreateRequest dto);
+    Event toEntity(EventCreateRequest dto);
     EventResponse toResponseDto(Event event);
 
     @Mapping(source = "number", target = "pageNumber")

@@ -1,6 +1,5 @@
 package com.chrisimoni.evyntspace.user.repository;
 
-import com.chrisimoni.evyntspace.event.model.Event;
 import com.chrisimoni.evyntspace.user.dto.UserSearchCriteria;
 import com.chrisimoni.evyntspace.user.model.User;
 import jakarta.persistence.criteria.CriteriaBuilder;

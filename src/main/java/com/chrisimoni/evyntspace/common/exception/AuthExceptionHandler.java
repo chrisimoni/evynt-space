@@ -1,4 +1,4 @@
-package com.chrisimoni.evyntspace.common.config;
+package com.chrisimoni.evyntspace.common.exception;
 
 import com.chrisimoni.evyntspace.common.dto.ErrorApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;

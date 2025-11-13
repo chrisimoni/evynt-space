@@ -1,5 +1,6 @@
 package com.chrisimoni.evyntspace.common.config;
 
+import com.chrisimoni.evyntspace.common.exception.AuthExceptionHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
