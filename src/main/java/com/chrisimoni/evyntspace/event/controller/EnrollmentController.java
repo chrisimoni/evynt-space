@@ -34,7 +34,7 @@ public class EnrollmentController {
 
         return new ResponseEntity<>(
                 ApiResponse.success("Your order is confirmed!", response),
-                HttpStatus.OK
+                HttpStatus.CREATED
         );
     }
 }

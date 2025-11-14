@@ -6,17 +6,17 @@ import com.chrisimoni.evyntspace.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/payment")
+@RequestMapping("/api/v1/payment")
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;
 
-    //TODO: update to return no content
     @PostMapping("/stripe/webhook")
     public ResponseEntity<Void> handleStripeWebhook(@RequestBody String payload,
                                                       @RequestHeader("Stripe-Signature") String sigHeader) {
@@ -31,9 +31,10 @@ public class PaymentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping("stripe/connect/onboard")
-    public ApiResponse<StripeOnboardingResponse> generateOnboardingLink(@RequestParam("userId") UUID userId) {
+    public ApiResponse<StripeOnboardingResponse> generateOnboardingLink() {
         return ApiResponse.success("Stripe connect account created successfully.",
-                paymentService.createAndOnboardStripeAccount(userId));
+                paymentService.createAndOnboardStripeAccount());
     }
 }

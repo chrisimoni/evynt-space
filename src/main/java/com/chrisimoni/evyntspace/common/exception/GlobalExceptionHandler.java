@@ -160,13 +160,20 @@ public class GlobalExceptionHandler {
     public ErrorApiResponse handleBadCredentialsException(BadCredentialsException ex) {
         // HTTP Status 401 (Unauthorized) is the standard for bad username/newPassword.
         // It's also acceptable to use 403 Forbidden to not reveal if the username exists.
-        return ErrorApiResponse.create(HttpStatus.UNAUTHORIZED.name(), "Invalid username or newPassword.");
+        return ErrorApiResponse.create(HttpStatus.UNAUTHORIZED.name(), "Invalid username or password");
     }
 
     @ExceptionHandler(InvalidTokenException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public  ErrorApiResponse handleInvalidTokenException(InvalidTokenException ex) {
         return ErrorApiResponse.create(HttpStatus.UNAUTHORIZED.name(), ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPasswordException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorApiResponse handleAccessDenied(InvalidPasswordException ex) {
+        return ErrorApiResponse.create(
+                HttpStatus.UNAUTHORIZED.name(), ex.getMessage());
     }
 
     // 403 Forbidden - User is authenticated but account is disabled

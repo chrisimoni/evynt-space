@@ -1,5 +1,6 @@
 package com.chrisimoni.evyntspace.payment.service.impl;
 
+import com.chrisimoni.evyntspace.common.config.AuthenticationContext;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.ExternalServiceException;
 import com.chrisimoni.evyntspace.event.enums.PaymentStatus;
@@ -47,6 +48,7 @@ public class StripePaymentServiceImpl implements PaymentService {
     private final ApplicationEventPublisher eventPublisher;
     private final UserService userService;
     private final TransactionService transactionService;
+    private final AuthenticationContext authenticationContext;
 
     @Value("${spring.application.base-url}")
     private String baseUrl;
@@ -65,12 +67,14 @@ public class StripePaymentServiceImpl implements PaymentService {
             PaymentAccountService paymentAccountService,
             UserService userService,
             TransactionService transactionService,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            AuthenticationContext authenticationContext) {
         Stripe.apiKey = secretKey; // initialize Stripe SDK
         this.paymentAccountService = paymentAccountService;
         this.userService = userService;
         this.transactionService = transactionService;
         this.eventPublisher = eventPublisher;
+        this.authenticationContext = authenticationContext;
     }
 
     //INITIAL IMPL WITHOUT DIRECT CHARGE
@@ -430,7 +434,8 @@ public class StripePaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public StripeOnboardingResponse createAndOnboardStripeAccount(UUID userId) {
+    public StripeOnboardingResponse createAndOnboardStripeAccount() {
+        UUID userId = authenticationContext.getCurrentUserId();
         return paymentAccountService.findByUserId(userId)
                 .map(account -> {
                     // If the account is already enabled, return a DTO without a link.

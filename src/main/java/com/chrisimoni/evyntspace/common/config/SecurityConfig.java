@@ -38,9 +38,12 @@ public class SecurityConfig {
                         .accessDeniedHandler(authExceptionHandler)      // Used for 403
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-//                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-//                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                                .requestMatchers("/api/v1/auth/change-password").authenticated()
+                                .requestMatchers("/api/v1/payment/stripe/connect/onboard").authenticated()
+
+                                .requestMatchers("/api/v1/auth/**").permitAll()
+                                .requestMatchers("/api/v1/enrollments/**").permitAll()
+                                .requestMatchers("/api/v1/payment/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

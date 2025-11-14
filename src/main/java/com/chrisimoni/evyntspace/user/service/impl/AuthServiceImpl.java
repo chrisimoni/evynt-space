@@ -1,13 +1,17 @@
 package com.chrisimoni.evyntspace.user.service.impl;
 
+import com.chrisimoni.evyntspace.common.enums.Role;
 import com.chrisimoni.evyntspace.common.events.LoginCodeNotificationEvent;
 import com.chrisimoni.evyntspace.common.events.PasswordResetNotificationEvent;
+import com.chrisimoni.evyntspace.common.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
+import com.chrisimoni.evyntspace.common.exception.InvalidPasswordException;
 import com.chrisimoni.evyntspace.common.exception.InvalidTokenException;
 import com.chrisimoni.evyntspace.common.exception.UserDisabledException;
-import com.chrisimoni.evyntspace.user.dto.*;
-import com.chrisimoni.evyntspace.common.enums.Role;
-import com.chrisimoni.evyntspace.common.events.VerificationCodeRequestedEvent;
+import com.chrisimoni.evyntspace.user.dto.AuthRequest;
+import com.chrisimoni.evyntspace.user.dto.AuthResponse;
+import com.chrisimoni.evyntspace.user.dto.ChangePasswordRequest;
+import com.chrisimoni.evyntspace.user.dto.UserCreateRequest;
 import com.chrisimoni.evyntspace.user.mapper.UserMapper;
 import com.chrisimoni.evyntspace.user.model.Token;
 import com.chrisimoni.evyntspace.user.model.User;
@@ -24,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -223,12 +226,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userService.findById(userId);
 
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-            throw new BadCredentialsException("Current password is not correct.");
+            throw new InvalidPasswordException("Current password is not correct.");
         }
 
         // Optional: Prevent reuse of the same password
         if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
-            throw new BadCredentialsException("New password cannot be the same as the current password.");
+            throw new InvalidPasswordException("New password cannot be the same as the current password.");
         }
 
         String newHashedPassword = passwordEncoder.encode(request.newPassword());

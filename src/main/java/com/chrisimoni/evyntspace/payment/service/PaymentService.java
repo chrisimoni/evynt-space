@@ -15,6 +15,6 @@ public interface PaymentService {
             String eventImageUrl);
     void handleStripeWebhook(String payload, String sigHeader);
     void initiateRefund(UUID userId, UUID transactionId);
-    StripeOnboardingResponse createAndOnboardStripeAccount(UUID userId);
+    StripeOnboardingResponse createAndOnboardStripeAccount();
     void handleStripeConnectAccountWebhook(String payload, String sigHeader);
 }
