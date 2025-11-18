@@ -1,5 +1,6 @@
 package com.chrisimoni.evyntspace.user.service.impl;
 
+import com.chrisimoni.evyntspace.common.events.PasswordResetNotificationEvent;
 import com.chrisimoni.evyntspace.common.exception.InvalidTokenException;
 import com.chrisimoni.evyntspace.user.enums.TokenType;
 import com.chrisimoni.evyntspace.user.model.Token;
@@ -7,6 +8,8 @@ import com.chrisimoni.evyntspace.user.model.User;
 import com.chrisimoni.evyntspace.user.repository.TokenRepository;
 import com.chrisimoni.evyntspace.user.service.TokenService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,22 +24,36 @@ import static com.chrisimoni.evyntspace.user.util.UserUtil.hash;
 @RequiredArgsConstructor
 public class TokenServiceImpl implements TokenService {
     private final TokenRepository repository;
-    private final PasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Value("${auth.refresh-token-validity}")
+    private int refreshTokenValidity;
+
+    @Value("${auth.password-reset-token-validity}")
+    private int passwordResetTokenValidity;
+
+    @Value("${app.frontend.url}")
+    String frontendBaseUrl;
 
     @Override
     @Transactional
-    public String createRefreshToken(User user, int validityInMinutes) {
+    public String createRefreshToken(User user) {
         // Delete old refresh tokens for this user
         repository.deleteByUserAndTokenType(user, TokenType.REFRESH_TOKEN);
-        return createToken(user, TokenType.REFRESH_TOKEN, validityInMinutes);
+        return createToken(user, TokenType.REFRESH_TOKEN, refreshTokenValidity);
     }
 
     @Override
     @Transactional
-    public String createPasswordResetToken(User user, int validityInMinutes) {
-        // Delete old newPassword reset tokens for this user
+    public void createPasswordResetToken(User user) {
+        // Delete old password reset tokens for this user
         repository.deleteByUserAndTokenType(user, TokenType.PASSWORD_RESET_TOKEN);
-        return createToken(user, TokenType.PASSWORD_RESET_TOKEN, validityInMinutes);
+        String plainToken = createToken(user, TokenType.PASSWORD_RESET_TOKEN, passwordResetTokenValidity);
+
+        String resetUrl = frontendBaseUrl + "/reset-newPassword?token=" + plainToken;
+
+        eventPublisher.publishEvent(new PasswordResetNotificationEvent(
+                this, user.getEmail(), resetUrl, passwordResetTokenValidity));
     }
 
     @Override
