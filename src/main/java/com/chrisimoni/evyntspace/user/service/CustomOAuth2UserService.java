@@ -49,35 +49,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         User user;
         try {
             user = userService.getUserByEmail(userInfo.email());
-            user = updateExistingUser(user, userInfo);
-            log.info("Updated existing user: {}", user.getEmail());
+            log.info("Found existing user: {}", user.getEmail());
         } catch (UsernameNotFoundException e) {
             user = createNewUser(userInfo, registrationId);
+            user = userService.save(user);
             log.info("Created new user from OAuth2: {}", user.getEmail());
         }
-
-        user = userService.save(user);
 
         return new CustomOAuth2User(oAuth2User, user);
     }
 
-    private User updateExistingUser(User user, OAuth2UserInfo userInfo) {
-        // Update user details if they've changed
-        if (userInfo.firstName() != null && !userInfo.firstName().equals(user.getFirstName())) {
-            user.setFirstName(userInfo.firstName());
-        }
-        if (userInfo.lastName() != null && !userInfo.lastName().equals(user.getLastName())) {
-            user.setLastName(userInfo.lastName());
-        }
-        if (userInfo.profileImageUrl() != null && !userInfo.profileImageUrl().equals(user.getProfileImageUrl())) {
-            user.setProfileImageUrl(userInfo.profileImageUrl());
-        }
-        return user;
-    }
-
     private User createNewUser(OAuth2UserInfo userInfo, String provider) {
         User user = new User();
-        user.setPassword("Password");
         user.setEmail(userInfo.email());
         user.setFirstName(userInfo.firstName());
         user.setLastName(userInfo.lastName());

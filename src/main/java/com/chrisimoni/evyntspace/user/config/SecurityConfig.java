@@ -46,11 +46,10 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers("/api/v1/auth/change-password").authenticated()
-                                .requestMatchers("/api/v1/payment/stripe/connect/onboard").authenticated()
 
                                 .requestMatchers("/api/v1/auth/**").permitAll()
-                                .requestMatchers("/api/v1/enrollments/**").permitAll()
-                                .requestMatchers("/api/v1/payment/**").permitAll()
+                                .requestMatchers("/api/v1/enrollments/enroll").permitAll()
+                                .requestMatchers("/api/v1/payment/stripe/webhook/**").permitAll()
                                 .requestMatchers("/login/oauth2/**").permitAll()
                                 .requestMatchers("/oauth2/**").permitAll()
                         .anyRequest().authenticated()

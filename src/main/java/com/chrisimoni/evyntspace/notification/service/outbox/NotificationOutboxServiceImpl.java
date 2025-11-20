@@ -38,10 +38,14 @@ public class NotificationOutboxServiceImpl implements NotificationOutboxService{
     @Transactional(propagation = Propagation.REQUIRED) // Ensure this save is part of the original transaction
     public void saveFailedMessageToOutbox(MessageDetails messageDetails, NotificationType type, String error) {
         NotificationOutbox notificationOutbox = new NotificationOutbox(messageDetails, type);
-        Instant nextAttemptTime = getNextAttemptTime(notificationOutbox.getRetryAttempts());
+        // Calculate next attempt time with exponential backoff (starting from retry attempt 0)
+        Instant nextAttemptTime = getNextAttemptTime(0);
+        // Mark as FAILED with first retry scheduled
         notificationOutbox.markAsFailed(error, nextAttemptTime);
 
         outboxRepository.save(notificationOutbox);
+        log.info("Saved failed email to outbox. Recipient: {}, Next retry at: {}",
+                messageDetails.getRecipient(), nextAttemptTime);
     }
 
     @Override
@@ -51,15 +55,19 @@ public class NotificationOutboxServiceImpl implements NotificationOutboxService{
     }
 
     /**
-     * Processes a single outbox outboxMessage, attempting to send it and updating its status.
+     * Processes a single outbox message, attempting to send it and updating its status.
      * This method is intended to be called by the scheduler.
-     * It runs in its own transaction to ensure each outboxMessage's state is updated atomically.
+     * It runs in its own transaction to ensure each message's state is updated atomically.
      */
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW) // Critical: new transaction for each outboxMessage
+    @Transactional(propagation = Propagation.REQUIRES_NEW) // Critical: new transaction for each message
     public void processSingleOutboxMessage(NotificationOutbox outboxMessage) {
-        log.info("Processing outbox outboxMessage ID: {} (Type: {}, Recipient: {})",
-                outboxMessage.getId(), outboxMessage.getNotificationType(), outboxMessage.getMessageDetails().getRecipient());
+        log.info("Processing outbox message ID: {} (Type: {}, Recipient: {}, Attempt: {}/{})",
+                outboxMessage.getId(),
+                outboxMessage.getNotificationType(),
+                outboxMessage.getMessageDetails().getRecipient(),
+                outboxMessage.getRetryAttempts() + 1,
+                maxRetryAttempts);
 
         MessageDetails details = outboxMessage.getMessageDetails();
         outboxMessage.setLastAttemptTime(Instant.now());
@@ -69,13 +77,15 @@ public class NotificationOutboxServiceImpl implements NotificationOutboxService{
             emailServiceGateway.sendEmail(details);
             // --- Mark as SENT on success ---
             outboxMessage.markAsSent();
-            log.info("Outbox outboxMessage ID: {} successfully sent after {} retries.",
-                    outboxMessage.getId(), outboxMessage.getRetryAttempts());
+            log.info("Outbox message ID: {} successfully sent on attempt {}/{}",
+                    outboxMessage.getId(), outboxMessage.getRetryAttempts(), maxRetryAttempts);
         } catch (Exception e) {
             // --- Handle failure ---
+            log.warn("Outbox message ID: {} failed on attempt {}/{}. Error: {}",
+                    outboxMessage.getId(), outboxMessage.getRetryAttempts(), maxRetryAttempts, e.getMessage());
             handleMessageFailure(outboxMessage, e.getMessage());
         } finally {
-            outboxRepository.save(outboxMessage); // Save the updated outboxMessage (success, failed, or permanently failed)
+            outboxRepository.save(outboxMessage); // Save the updated message (success, failed, or permanently failed)
         }
     }
 
@@ -92,6 +102,20 @@ public class NotificationOutboxServiceImpl implements NotificationOutboxService{
         outboxMessage.markAsFailed(error, nextAttempt);
         log.warn("Outbox outboxMessage ID: {} will be re-attempted at {}. Marked as FAILED.",
                 outboxMessage.getId(), nextAttempt);
+    }
+
+    @Override
+    @Transactional
+    public int deleteOldProcessedRecords(int retentionDays) {
+        Instant cutoffDate = Instant.now().minus(retentionDays, ChronoUnit.DAYS);
+        int deletedCount = outboxRepository.deleteOldProcessedRecords(
+                NotificationStatus.SENT,
+                NotificationStatus.PERMANENT_FAILURE,
+                cutoffDate
+        );
+        log.info("Deleted {} old outbox records (SENT/PERMANENT_FAILURE) older than {} days",
+                deletedCount, retentionDays);
+        return deletedCount;
     }
 
     public Instant getNextAttemptTime(int retryAttempts) {

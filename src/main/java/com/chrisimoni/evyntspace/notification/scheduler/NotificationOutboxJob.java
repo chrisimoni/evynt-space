@@ -22,8 +22,10 @@ public class NotificationOutboxJob {
     @Value("${notification.outbox.processing-batch-size}")
     private int processingBatchSize;
 
-    //@Scheduled(cron = "${notification.outbox.processing-cron-expression}")
-    //@Scheduled(cron = "*/10 * * * * *")
+    @Value("${notification.outbox.cleanup-retention-days:7}")
+    private int retentionDays;
+
+    @Scheduled(cron = "${notification.outbox.processing-cron-expression}")
     protected void processOutboxMessages() {
         log.info("NotificationOutboxJob running at {}. Looking for messages to process...", Instant.now());
 
@@ -52,5 +54,22 @@ public class NotificationOutboxJob {
             }
         }
         log.info("NotificationOutboxJob finished processing batch.");
+    }
+
+    /**
+     * Runs daily at 2 AM to clean up old SENT and PERMANENT_FAILURE records.
+     * This prevents the outbox table from growing indefinitely.
+     */
+    @Scheduled(cron = "${notification.outbox.cleanup-cron-expression:0 0 2 * * *}")
+    protected void cleanupOldOutboxRecords() {
+        log.info("NotificationOutboxCleanupJob starting at {}. Will delete records older than {} days.",
+                Instant.now(), retentionDays);
+
+        try {
+            int deletedCount = outboxService.deleteOldProcessedRecords(retentionDays);
+            log.info("NotificationOutboxCleanupJob completed. Deleted {} old records.", deletedCount);
+        } catch (Exception e) {
+            log.error("Error during NotificationOutboxCleanupJob execution: {}", e.getMessage(), e);
+        }
     }
 }

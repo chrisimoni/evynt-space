@@ -12,4 +12,5 @@ public interface NotificationOutboxService {
     void saveFailedMessageToOutbox(MessageDetails messageDetails, NotificationType notificationType, String error);
     List<NotificationOutbox> findFailedMessagesToProcess(NotificationStatus notificationStatus, Pageable pageable);
     void processSingleOutboxMessage(NotificationOutbox message);
+    int deleteOldProcessedRecords(int retentionDays);
 }

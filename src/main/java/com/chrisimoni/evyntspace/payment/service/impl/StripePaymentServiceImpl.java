@@ -461,6 +461,14 @@ public class StripePaymentServiceImpl implements PaymentService {
         try {
             User user = userService.findById(userId);
 
+            // Validate that user has completed required profile information
+            if (user.getCountryCode() == null || user.getCountryCode().isBlank()) {
+                throw new BadRequestException(
+                    "Please update your profile with your country before setting up payments. " +
+                    "This information is required for payment processing and tax compliance."
+                );
+            }
+
             final String stripeAccountId = createConnectAccount(
                     userId.toString(), user.getEmail(), user.getCountryCode()
             );

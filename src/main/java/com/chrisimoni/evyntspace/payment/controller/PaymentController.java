@@ -4,12 +4,9 @@ import com.chrisimoni.evyntspace.common.dto.ApiResponse;
 import com.chrisimoni.evyntspace.payment.dto.StripeOnboardingResponse;
 import com.chrisimoni.evyntspace.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/payment")
@@ -24,7 +21,7 @@ public class PaymentController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/stripe/connect/webhook")
+    @PostMapping("/stripe/webhook/connect")
     public ResponseEntity<Void> handleStripeConnectAccountWebhook(@RequestBody String payload,
                                                       @RequestHeader("Stripe-Signature") String sigHeader) {
         paymentService.handleStripeConnectAccountWebhook(payload, sigHeader);

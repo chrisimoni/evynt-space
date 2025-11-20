@@ -80,11 +80,13 @@ notification:
   #Other types of notification can go here
 
   outbox:
-    processing-batch-size: 100       # How many messages to fetch at once for processing
-    processing-cron-expression: "0 * * * * *" # Every minute (for example)
-    max-retry-attempts: 3            # Max retries before permanent failure
-    initial-retry-interval-minutes: 1 # Initial delay for first retry
-    retry-interval-factor: 2         # Factor to increase delay (e.g., exponential backoff: 1min, 2min, 4min, 8min)
+    processing-batch-size: 100              # How many messages to fetch at once for processing
+    processing-cron-expression: "0 * * * * *"  # Every minute
+    max-retry-attempts: 3                   # Max retries before permanent failure (total: 3 immediate + 3 delayed = 6 max)
+    initial-retry-interval-minutes: 5       # Initial delay for first retry (5 min)
+    retry-interval-factor: 2                # Exponential backoff: 5min, 10min, 20min
+    cleanup-cron-expression: "0 0 2 * * *"  # Daily at 2 AM
+    cleanup-retention-days: 7               # Keep SENT/PERMANENT_FAILURE records for 7 days
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}
