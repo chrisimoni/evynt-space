@@ -2,6 +2,7 @@ package com.chrisimoni.evyntspace.user.model;
 
 import com.chrisimoni.evyntspace.common.model.ActivatableEntity;
 import com.chrisimoni.evyntspace.common.model.SecurityPrincipal;
+import com.chrisimoni.evyntspace.common.enums.AuthProvider;
 import com.chrisimoni.evyntspace.common.enums.Role;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -37,6 +38,9 @@ public class User extends ActivatableEntity implements UserDetails, SecurityPrin
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    private AuthProvider provider;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

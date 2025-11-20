@@ -1,8 +1,8 @@
 package com.chrisimoni.evyntspace.user.service.impl;
 
+import com.chrisimoni.evyntspace.common.enums.AuthProvider;
 import com.chrisimoni.evyntspace.common.enums.Role;
 import com.chrisimoni.evyntspace.common.events.LoginCodeNotificationEvent;
-import com.chrisimoni.evyntspace.common.events.PasswordResetNotificationEvent;
 import com.chrisimoni.evyntspace.common.events.VerificationCodeRequestedEvent;
 import com.chrisimoni.evyntspace.common.exception.BadRequestException;
 import com.chrisimoni.evyntspace.common.exception.InvalidPasswordException;
@@ -61,14 +61,6 @@ public class AuthServiceImpl implements AuthService {
     int codeValidity;
     @Value("${auth.session-validity}")
     int sessionValidity;
-
-    @Value("${auth.refresh-token-validity}")
-    private int refreshTokenValidity;
-    @Value("${auth.password-reset-token-validity}")
-    private int passwordResetTokenValidity;
-
-    @Value("${app.frontend.url}")
-    String frontendBaseUrl;
 
     @Override
     @Transactional
@@ -138,6 +130,7 @@ public class AuthServiceImpl implements AuthService {
         user.setCountryCode(user.getCountryCode().toUpperCase());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole(Role.USER);
+        user.setProvider(AuthProvider.LOCAL);
 
         user = userService.createUser(user);
 
@@ -187,11 +180,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void requestPasswordReset(String email) {
         User user = userService.getUserByEmail(email);
-        String plainToken = tokenService.createPasswordResetToken(user, refreshTokenValidity);
-        String resetUrl = frontendBaseUrl + "/reset-newPassword?token=" + plainToken;
-
-        eventPublisher.publishEvent(new PasswordResetNotificationEvent(
-                this, email, resetUrl, passwordResetTokenValidity));
+        //Generate new password reset token and sent notification to the user
+        tokenService.createPasswordResetToken(user);
     }
 
     @Override
@@ -294,7 +284,7 @@ public class AuthServiceImpl implements AuthService {
 
     private AuthResponse authResponse(User user) {
         String accessToken = jwtService.generateToken(user);
-        String refreshToken = tokenService.createRefreshToken(user, refreshTokenValidity);
+        String refreshToken = tokenService.createRefreshToken(user);
 
         return new AuthResponse(
                 user.getId(),

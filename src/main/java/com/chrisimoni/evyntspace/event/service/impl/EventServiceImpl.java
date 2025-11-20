@@ -67,6 +67,9 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
         User organizer = userService.findById(request.organizerId());
         authenticationContext.validateUserAccess(request.organizerId());
 
+        // Validate country is provided for all events
+        validateOrganizerProfile(organizer);
+
         if(request.isPaid()) {
             validateOrganizerPaymentStatus(organizer.getId());
         }
@@ -87,6 +90,14 @@ public class EventServiceImpl extends BaseServiceImpl<Event, UUID> implements Ev
         event = super.save(event);
 
         return mapper.toResponseDto(event);
+    }
+
+    private void validateOrganizerProfile(User organizer) {
+        if (organizer.getCountryCode() == null || organizer.getCountryCode().isBlank()) {
+            throw new BadRequestException(
+                    "Please complete your profile by adding your country before creating events."
+            );
+        }
     }
 
     private void validateOrganizerPaymentStatus(UUID userId) {

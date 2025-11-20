@@ -52,6 +52,27 @@ spring:
       max-file-size: 5MB
       max-request-size: 5MB
 
+  # Google OAuth2
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+#              - openid
+              - email
+              - profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+
+
 notification:
   email:
     sender: ${EMAIL_SENDER}
@@ -59,11 +80,13 @@ notification:
   #Other types of notification can go here
 
   outbox:
-    processing-batch-size: 100       # How many messages to fetch at once for processing
-    processing-cron-expression: "0 * * * * *" # Every minute (for example)
-    max-retry-attempts: 3            # Max retries before permanent failure
-    initial-retry-interval-minutes: 1 # Initial delay for first retry
-    retry-interval-factor: 2         # Factor to increase delay (e.g., exponential backoff: 1min, 2min, 4min, 8min)
+    processing-batch-size: 100              # How many messages to fetch at once for processing
+    processing-cron-expression: "0 * * * * *"  # Every minute
+    max-retry-attempts: 3                   # Max retries before permanent failure (total: 3 immediate + 3 delayed = 6 max)
+    initial-retry-interval-minutes: 5       # Initial delay for first retry (5 min)
+    retry-interval-factor: 2                # Exponential backoff: 5min, 10min, 20min
+    cleanup-cron-expression: "0 0 2 * * *"  # Daily at 2 AM
+    cleanup-retention-days: 7               # Keep SENT/PERMANENT_FAILURE records for 7 days
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}

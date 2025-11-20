@@ -1,6 +1,7 @@
 package com.chrisimoni.evyntspace.notification.service.email;
 
 import com.chrisimoni.evyntspace.common.exception.ExternalServiceException;
+import com.chrisimoni.evyntspace.notification.exception.PermanentEmailFailureException;
 import com.chrisimoni.evyntspace.notification.model.MessageDetails;
 import com.chrisimoni.evyntspace.notification.enums.NotificationType;
 import com.chrisimoni.evyntspace.notification.service.NotificationService;
@@ -23,8 +24,15 @@ public class EmailNotificationServiceImpl implements NotificationService {
     public void send(MessageDetails messageDetails) {
         try {
             emailSenderGateway.sendEmail(messageDetails);
-        }catch (ExternalServiceException e) {
+        } catch (ExternalServiceException e) {
+            // Network/transient failure after retries - save to outbox for delayed retry
+            log.warn("Saving failed email to outbox for delayed retry. Recipient: {}, Error: {}",
+                    messageDetails.getRecipient(), e.getMessage());
             outboxService.saveFailedMessageToOutbox(messageDetails, NotificationType.EMAIL, e.getMessage());
+        } catch (PermanentEmailFailureException e) {
+            // Permanent failure (invalid credentials, MIME errors) - log and skip (no outbox)
+            log.error("Permanent email failure - NOT saving to outbox. Recipient: {}, Subject: {}, Error: {}",
+                    messageDetails.getRecipient(), messageDetails.getSubject(), e.getMessage());
         }
     }
 }
